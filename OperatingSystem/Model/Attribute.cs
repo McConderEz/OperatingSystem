@@ -18,7 +18,7 @@ namespace OperatingSystem.Model
         public uint GroupId { get; private set; } // Идентификатор группы
         public uint BlocksCount { get; private set; } // Число блоков данных
         public List<Attribute> AttributesRefs { get; private set; } // Ссылки на атрибуты, связанные с данным атрибутом
-
+        public List<Indexer> indexesOnClusterBitmap { get; private set; } // Список индексов(начало и конец) на участки данных конкретного файла в карте св./з. кластеров
 
     }
 }

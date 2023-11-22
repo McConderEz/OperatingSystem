@@ -6,15 +6,19 @@
     public class FileSystem : IFileSystem
     {
         public static string FileSystemPath { get; private set; } // Путь файловой системы
-
+        public readonly SuperBlock superBlock;
+        public readonly MFT_Table mftTable;
         
         public FileSystem()
         {
             if (!Exists(@"C:\NTFS")) // Если директория файловой системы не создана, то форматируем
             {
+                superBlock = new SuperBlock();
+                mftTable = new MFT_Table();
                 Formatting();
             }
-            //TODO:Инициализовать суперблок и файловую таблицу
+
+            //TODO:Если корневая директория существует, значит подгружать метаданные из JSON 
         }
 
         public void CreateDirectory(string path)
@@ -22,6 +26,7 @@
             throw new NotImplementedException();
         }
 
+        //TODO:Сделать создание файла
         public Stream CreateFile(string path)
         {
             throw new NotImplementedException();
@@ -91,6 +96,7 @@
 
         public void Formatting()
         {
+            Array.Clear(superBlock.ClusterBitmap, 0 , superBlock.ClusterBitmap.Length); // Установка всех битов в 0
             FileSystemPath = @"C:\NTFS";
             Directory.CreateDirectory(FileSystemPath);
         }
