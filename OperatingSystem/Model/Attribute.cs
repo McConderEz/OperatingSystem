@@ -20,10 +20,22 @@ namespace OperatingSystem.Model
         public List<Attribute> AttributesRefs { get; private set; } // Ссылки на атрибуты, связанные с данным атрибутом
         public List<Indexer> indexesOnClusterBitmap { get; private set; } // Список индексов(начало и конец) на участки данных конкретного файла в карте св./з. кластеров
 
-        public Attribute()
+        public Attribute(MFTEntryHeader attributeHeader, string nameHeader, string nameData, uint length, uint attributeFlags = 1, uint ownerId = 1, uint groudId = 1, uint blocksCount = 0)
         {
-            //TODO:Сделать заполнение свойств
+            //TODO: Продумать атрибутные флаги, идентификаторы владельца и группы, когда будет сделана многопользовательская система
+            //TODO: Сделать проверки
+            AttributeHeader = attributeHeader;
+            NameHeader = nameHeader;
+            NameData = nameData;
+            Length = length;
+            AttributeFlags = attributeFlags;
+            OwnerId = ownerId;
+            GroupId = groudId;
+            BlocksCount = blocksCount;
             indexesOnClusterBitmap = new List<Indexer>();
+            AttributesRefs = new List<Attribute>();
+
+            //TODO:Сделать изменение количества блоков кластеров, размера флагов и временных меток.
         }
     }
 }

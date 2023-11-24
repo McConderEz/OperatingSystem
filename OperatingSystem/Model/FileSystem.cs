@@ -92,9 +92,14 @@ namespace OperatingSystem.Model
             throw new NotImplementedException();
         }
 
-        public void ReadFile(string path)
+        public StringBuilder ReadFile(string path)
         {
-            throw new NotImplementedException();
+            var data = new StringBuilder();
+            using(StreamReader streamReader = new StreamReader(path))
+            {
+                data.AppendLine(streamReader.ReadToEnd());
+            }
+            return data;
         }
 
         public void WriteFile(string fileName, StringBuilder data)

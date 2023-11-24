@@ -16,7 +16,7 @@ namespace OperatingSystem.Model
         public MFT_Entry(string fileName, uint sequenceNumber, FileType fileType)
         {
             Header = new MFTEntryHeader(fileName,sequenceNumber,fileType);
-            Attributes = new Attribute();//TODO:Сделать заполнение
+            Attributes = new Attribute(Header,fileName + " " + $"{0}",fileName,);//TODO:Сделать заполнение
         }
     }
 }
