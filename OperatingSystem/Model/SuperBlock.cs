@@ -9,7 +9,7 @@ namespace OperatingSystem.Model
     /// <summary>
     /// Предоставляет всю инфомрацию о файловой системе и томе
     /// </summary>
-    public class SuperBlock
+    public class SuperBlock: ISuperBlock
     {        
         public readonly string Signature = "VortexOs"; //Сигнатура(Имя) файловой системы(тома)
         public readonly string ID = Guid.NewGuid().ToString();//Уникальный идентификатор тома
@@ -26,15 +26,45 @@ namespace OperatingSystem.Model
         {
             MFTSize = (ulong)Math.Round(TotalDiskSize * 0.125);
             MFTBackup = new List<MFT_Entry>(16);
-            int totalClusterCount = 2048000;
+            int totalClusterCount = 2048;
             ClusterBitmap = new byte[totalClusterCount][]; // Создание массива массивов из 2048000 кластеров, каждый из которых равен 4кб 
 
             for(int i = 0;i < totalClusterCount; i++)
             {
                 ClusterBitmap[i] = new byte[ClusterUnitSize];
+                for (int j = 0; j < ClusterUnitSize; j++)
+                {
+                    ClusterBitmap[i][j] = 0;
+                }
             }
         }
 
+
+
+        public bool IsClusterFree(int clusterIndex) => ClusterBitmap[clusterIndex][0] == 0;
         
+
+        public void MarkClusterAsUsed(int clusterIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void MarkClusterAsFree(int clusterIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int FindFreeCluser()
+        {
+            for(int i = 0;i < ClusterBitmap.Length;i++)
+            {
+                if (ClusterBitmap[i][0] == 0)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
     }
 }

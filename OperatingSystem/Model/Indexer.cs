@@ -11,13 +11,11 @@ namespace OperatingSystem.Model
     /// </summary>
     public struct Indexer
     {
-        public int indexStart;
-        public int indexEnd;
+        public int index;
 
-        public Indexer()
+        public Indexer(int index = -1)
         {
-            indexStart = 0;
-            indexEnd = 0;
+            this.index = index;
         }
     }
 }

@@ -14,5 +14,8 @@ namespace OperatingSystem.Model
         //2)Далее посчитать размер данных и создать bin файл, куда записать данные из кластеров по индексам и сохранить всю информацию о файле(метаданные) в MFT->MFT-Entry->Attribute
         void MarkClusterAsUsed(int clusterIndex);
         void MarkClusterAsFree(int clusterIndex);
+
+        int FindFreeCluser();
+
     }
 }

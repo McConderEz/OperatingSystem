@@ -8,7 +8,7 @@ namespace OperatingSystem.Model
 {
     public class Attribute
     {
-        public string AttributeHeader { get; private set; } //Заголовок атрибута 
+        public MFTEntryHeader AttributeHeader { get; private set; } //Заголовок атрибута 
         public string NameHeader { get; private set; } //Заголовок имени
         public string NameData { get; private set; } //Данные имени
         public uint Length { get; } //Длина содержимого
@@ -20,5 +20,10 @@ namespace OperatingSystem.Model
         public List<Attribute> AttributesRefs { get; private set; } // Ссылки на атрибуты, связанные с данным атрибутом
         public List<Indexer> indexesOnClusterBitmap { get; private set; } // Список индексов(начало и конец) на участки данных конкретного файла в карте св./з. кластеров
 
+        public Attribute()
+        {
+            //TODO:Сделать заполнение свойств
+            indexesOnClusterBitmap = new List<Indexer>();
+        }
     }
 }
