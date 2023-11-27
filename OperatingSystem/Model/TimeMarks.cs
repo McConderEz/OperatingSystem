@@ -9,11 +9,11 @@ namespace OperatingSystem.Model
     /// <summary>
     /// Временные метки
     /// </summary>
-    public struct TimeMarks
+    public class TimeMarks
     {
         public DateTime CreationTime { get; init; } //Дата и время создания
-        public DateTime ModificationTime { get; private set; } //Дата и время модификации
-        public DateTime AccessTime { get; private set; } //Дата и время доступа
+        public DateTime ModificationTime { get; set; } //Дата и время модификации
+        public DateTime AccessTime { get; set; } //Дата и время доступа
 
         public TimeMarks()
         {

@@ -22,27 +22,39 @@ namespace OperatingSystem.Model
         /// Добавление записи в таблицу при создании файла в ФС
         /// </summary>
         /// <exception cref="NotImplementedException"></exception>
-        public void Add(string fileName, FileType fileType)
+        public void Add(string fileName,string fullPath ,FileType fileType)
         {
-            Entries.Add(new MFT_Entry(fileName, (uint)Entries.Count(), fileType));
+            Entries.Add(new MFT_Entry(fileName,fullPath ,(uint)Entries.Count(), fileType));
         }
 
         /// <summary>
         /// Удаление записи из таблицы при удалении файла из ФС
         /// </summary>
         /// <exception cref="NotImplementedException"></exception>
-        public void Delete()
+        public void Delete(string fullPath, SuperBlock superBlock)
         {
-            throw new NotImplementedException();
+            var entry = Entries.SingleOrDefault(x => x.Attributes.FullPath.Equals(fullPath));
+            if (entry != null)
+            {
+                for(int i = 0;i < entry.Attributes.indexesOnClusterBitmap.Count;i++) //Освобождение кластеров, принадлежащих файлу
+                {
+                    superBlock.MarkClusterAsFree(entry.Attributes.indexesOnClusterBitmap[i].index);
+                }
+                Entries.Remove(entry); //Удаляем Entry из MFT
+            }
         }
 
         /// <summary>
         /// Изменение записи в таблицы при чтении/записи в файл
         /// </summary>
         /// <exception cref="NotImplementedException"></exception>
-        public void Edit()
+        public void Edit(string fullPath, uint length)
         {
-            throw new NotImplementedException();
+            var entry = Entries.SingleOrDefault(x => x.Attributes.FullPath.Equals(fullPath));
+            if(entry != null)
+            {
+                entry.Attributes.Edit(length, (uint)entry.Attributes.indexesOnClusterBitmap.Count);
+            }
         }
     }
 }

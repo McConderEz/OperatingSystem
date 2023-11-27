@@ -13,10 +13,10 @@ namespace OperatingSystem.Model
 
         public readonly string ID = Guid.NewGuid().ToString(); // Уникальный идентификатор записи
 
-        public MFT_Entry(string fileName, uint sequenceNumber, FileType fileType)
+        public MFT_Entry(string fileName,string fullPath ,uint sequenceNumber, FileType fileType)
         {
             Header = new MFTEntryHeader(fileName,sequenceNumber,fileType);
-            Attributes = new Attribute(Header,fileName + " " + $"{0}",fileName,);//TODO:Сделать заполнение
+            Attributes = new Attribute(Header,fileName,fullPath , (uint)new FileInfo(fullPath).Length, fileType, AttributeFlags.NotReadOnly, 1, 1, 0);//TODO:Сделать заполнение            
         }
     }
 }

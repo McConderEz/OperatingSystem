@@ -17,5 +17,8 @@ namespace OperatingSystem.Model
         void CreateDirectory(string path);
         void Formatting();
         void Delete(string path);
+        //TODO:Реализовать копирование и перемещение файла
+        void CopyTo(string path);
+        void MoveTo(string path);
     }
 }

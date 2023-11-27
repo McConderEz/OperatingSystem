@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.IO;
+using System.Text;
 
 namespace OperatingSystem.Model
 {
@@ -7,6 +8,7 @@ namespace OperatingSystem.Model
     /// </summary>
     public class FileSystem : IFileSystem
     {
+        //TODO:Создать механику Журналирование(Логгирование действий файловой системы и возможность отката)
         public static string FileSystemPath { get; private set; } // Путь файловой системы
         public readonly SuperBlock superBlock;
         public readonly MFT_Table mftTable;
@@ -36,13 +38,22 @@ namespace OperatingSystem.Model
             if (!File.Exists(path))
             {
                 File.Create(path).Close();
-                mftTable.Add(fileName, FileType.File);                
+                
+                mftTable.Add(fileName, new FileInfo(path).FullName ,FileType.File);                
             }
         }
 
+        /// <summary>
+        /// Удаление файла
+        /// </summary>
+        /// <param name="path"></param>
         public void Delete(string path)
         {
-            throw new NotImplementedException();
+            if(File.Exists(path)) 
+            {
+                mftTable.Delete(new FileInfo(path).FullName, superBlock);//Удаление записи из MFT
+                File.Delete(path);
+            }
         }
 
         public void Dispose()
@@ -87,11 +98,24 @@ namespace OperatingSystem.Model
             return false; // Директория не найдена
         }
 
+        /// <summary>
+        /// Вывод файлов каталога
+        /// </summary>
+        /// <param name="path">Путь к каталогу</param>
+        /// <returns></returns>
         public ICollection<string> GetEntities(string path)
         {
-            throw new NotImplementedException();
+            return mftTable.Entries
+                .Where(entry => entry.Attributes.ParentsDirectory.Equals(path))
+                .Select(entry => entry.Attributes.NameData)
+                .ToList();
         }
 
+        /// <summary>
+        /// Чтение данных файла
+        /// </summary>
+        /// <param name="path">Путь к файлу</param>
+        /// <returns></returns>
         public StringBuilder ReadFile(string path)
         {
             var data = new StringBuilder();
@@ -99,14 +123,23 @@ namespace OperatingSystem.Model
             {
                 data.AppendLine(streamReader.ReadToEnd());
             }
+
+            FileInfo fileInfo = new FileInfo(path);
+            mftTable.Edit(path, (uint)fileInfo.Length);
             return data;
         }
 
+        /// <summary>
+        /// Запись данных в файл
+        /// </summary>
+        /// <param name="fileName">Имя файла</param>
+        /// <param name="data">Данные на ввод</param>
+        /// <exception cref="FileLoadException"></exception>
         public void WriteFile(string fileName, StringBuilder data)
         {
             try
             {
-                var mftItem = mftTable.Entries.SingleOrDefault(x => x.Header.Signature == fileName);
+                var mftItem = mftTable.Entries.SingleOrDefault(x => x.Header.Signature == fileName); //Проверка на наличие записи в MFT 
 
                 if (mftItem == null)
                 {
@@ -114,7 +147,7 @@ namespace OperatingSystem.Model
                 }
                 else if (mftItem.Attributes.indexesOnClusterBitmap.Count != 0)
                 {
-                    ReWriteIndexesOfMFTEntry(mftItem);
+                    ReWriteIndexesOfMFTEntry(mftItem);// Удаление индексов на битовую карту в записи ввиду перезаписи информации
                 }
 
                 using (MemoryStream stream = new MemoryStream())
@@ -123,46 +156,16 @@ namespace OperatingSystem.Model
                     int dataSize = dataBytes.Length;
                     for (var i = 0; i < superBlock.ClusterBitmap.Length; i++)
                     {
-                        if (superBlock.IsClusterFree(i) && dataSize <= 4096)
+                        if (superBlock.IsClusterFree(i) && dataSize <= 4096) // Запись данных в файл, размер которых не превышает размер одного кластера(4кб)
                         {
-                            for (int j = 0; j < dataBytes.Length; j++)
-                            {
-                                superBlock.ClusterBitmap[i][j] = dataBytes[j];
-                            }
+                            superBlock.MarkClusterAsUsed(dataBytes,i);
                             mftItem.Attributes.indexesOnClusterBitmap.Add(new Indexer(i));
-
                             WriteBytesToFile(fileName, stream, dataBytes, dataSize);
                             break;
                         }
-                        else if (superBlock.IsClusterFree(i) && dataSize > 4096)
+                        else if (superBlock.IsClusterFree(i) && dataSize > 4096) // Запись данных в файл, размер которых больше одного кластера(4кб)
                         {
-                            int l = 0; // Индекс массива данных на запись 
-                            for (int j = i; j < superBlock.ClusterBitmap.Length; j++)
-                            {
-                                if (superBlock.IsClusterFree(j))
-                                {
-                                    for (int k = 0; k < dataBytes.Length; k++)
-                                    {
-                                        if (k < 4096 && l < dataBytes.Length) // Запись байт в кластер
-                                        {
-                                            superBlock.ClusterBitmap[j][k] = dataBytes[l++];
-                                            dataSize--;
-                                        }
-                                        else
-                                        {
-                                            // Кластер заполнен и MFT запись получает индексы на область карты кластеров, принадлежащие данному файлу
-                                            mftItem.Attributes.indexesOnClusterBitmap.Add(new Indexer(j));
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                if (dataSize == 0) // Вся информация записана в кластеры
-                                {
-                                    break;
-                                }
-
-                            }
+                            superBlock.MarkClustersAsUsedForLargeFile(mftItem, dataBytes, dataSize, i);
                             WriteBytesToFile(fileName, stream, dataBytes, dataSize);
                             break;
                         }
@@ -170,10 +173,19 @@ namespace OperatingSystem.Model
 
                     }
                 }
+
+                FileInfo fileInfo = new FileInfo(fileName);
+                mftTable.Edit(fileName, (uint)fileInfo.Length);
             }
             catch (Exception e) { }
         }
 
+        
+
+        /// <summary>
+        /// Очистка указателей на битовую карту кластеров записи MFT
+        /// </summary>
+        /// <param name="mftItem"></param>
         private void ReWriteIndexesOfMFTEntry(MFT_Entry? mftItem)
         {
             var indexes = mftItem.Attributes.indexesOnClusterBitmap;
@@ -187,6 +199,13 @@ namespace OperatingSystem.Model
             mftItem.Attributes.indexesOnClusterBitmap.Clear();
         }
 
+        /// <summary>
+        /// Запись данных в файл
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <param name="stream"></param>
+        /// <param name="dataBytes"></param>
+        /// <param name="dataSize"></param>
         private static void WriteBytesToFile(string fileName, MemoryStream stream, byte[] dataBytes, int dataSize)
         {
             using (BinaryWriter writer = new BinaryWriter(stream))
@@ -200,10 +219,23 @@ namespace OperatingSystem.Model
             }
         }
 
+        /// <summary>
+        /// Создание корневого каталога
+        /// </summary>
         public void Formatting()
         {
             FileSystemPath = @"D:\NTFS";
             Directory.CreateDirectory(FileSystemPath);
+        }
+
+        public void CopyTo(string path)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void MoveTo(string path)
+        {
+            throw new NotImplementedException();
         }
     }
 }

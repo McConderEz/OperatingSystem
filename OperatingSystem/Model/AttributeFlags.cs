@@ -6,11 +6,12 @@ using System.Threading.Tasks;
 
 namespace OperatingSystem.Model
 {
-    public enum FileType
+    public enum AttributeFlags
     {
-        Empty = 0,
-        File = 1,
-        Catalog = 2,
-        Metadata = 3
+        ReadOnly = 0,
+        NotReadOnly = 1,
+        Hidden = 2,
+        System = 3,
+        Encrypted = 4,
     }
 }

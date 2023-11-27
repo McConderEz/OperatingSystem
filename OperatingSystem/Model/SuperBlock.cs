@@ -44,17 +44,58 @@ namespace OperatingSystem.Model
         public bool IsClusterFree(int clusterIndex) => ClusterBitmap[clusterIndex][0] == 0;
         
 
-        public void MarkClusterAsUsed(int clusterIndex)
+        public void MarkClusterAsUsed(byte[] dataBytes,int clusterIndex)
         {
-            throw new NotImplementedException();
+            for (int j = 0; j < dataBytes.Length; j++)
+            {
+                ClusterBitmap[clusterIndex][j] = dataBytes[j];
+            }
+        }
+
+        public void MarkClustersAsUsedForLargeFile(MFT_Entry? mftItem, byte[] dataBytes, int dataSize, int clusterIndex)
+        {
+            int l = 0; // Индекс массива данных на запись 
+            for (int j = clusterIndex; j < ClusterBitmap.Length; j++)
+            {
+                if (IsClusterFree(j))
+                {
+                    for (int k = 0; k < dataBytes.Length; k++)
+                    {
+                        if (k < 4096 && l < dataBytes.Length) // Запись байт в кластер
+                        {
+                            ClusterBitmap[j][k] = dataBytes[l++];
+                            dataSize--;
+                        }
+                        else
+                        {
+                            // Кластер заполнен и MFT запись получает индексы на область карты кластеров, принадлежащие данному файлу
+                            mftItem.Attributes.indexesOnClusterBitmap.Add(new Indexer(j));
+                            break;
+                        }
+                    }
+                }
+
+                if (dataSize == 0) // Вся информация записана в кластеры
+                {
+                    break;
+                }
+
+            }
         }
 
         public void MarkClusterAsFree(int clusterIndex)
         {
-            throw new NotImplementedException();
+            for(int i = 0;i < ClusterBitmap[clusterIndex].Length; i++)
+            {
+                ClusterBitmap[clusterIndex][i] = 0;
+            }
         }
 
-        public int FindFreeCluser()
+        /// <summary>
+        /// Находим первый свободный кластер
+        /// </summary>
+        /// <returns></returns>
+        public int FindFreeCluster()
         {
             for(int i = 0;i < ClusterBitmap.Length;i++)
             {
@@ -66,5 +107,7 @@ namespace OperatingSystem.Model
 
             return -1;
         }
+
+        
     }
 }

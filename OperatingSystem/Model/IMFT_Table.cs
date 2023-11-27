@@ -8,9 +8,9 @@ namespace OperatingSystem.Model
 {
     public interface IMFT_Table
     {
-        void Add(string fileName,FileType fileType);
-        void Delete();
-        void Edit();
+        void Add(string fileName,string fullPath,FileType fileType);
+        void Delete(string fullPath, SuperBlock superBlock);
+        void Edit(string fullPath, uint length);
 
     }
 }
