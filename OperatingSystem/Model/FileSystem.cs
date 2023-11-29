@@ -1,29 +1,51 @@
-﻿using System.IO;
+﻿using OperatingSystem.Controller;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.IO;
+using System.Runtime.Serialization;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace OperatingSystem.Model
 {
+    //TODO:План на сегодня
+    //TODO:Починить десериализацию MFT(Проблема в Атрибуте)
+    //TODO:Починить проблему с зависанием программы вне отладки
+    //TODO:Сделать перемещение, переименование, копирование файла
+    //TODO:Сделать добавление,удаление,перемещение,переименование, копирование каталога (сложно)
+    //TODO:Асинхронный доступ к файлам
+
     /// <summary>
     /// Файловая система NTFS
     /// </summary>
-    public class FileSystem : IFileSystem
+    [DataContract]
+    public class FileSystem : ControllerSaveBase,IFileSystem
     {
         //TODO:Создать механику Журналирование(Логгирование действий файловой системы и возможность отката)
+        [DataMember]
         public static string FileSystemPath { get; private set; } // Путь файловой системы
+        [DataMember]
         public readonly SuperBlock superBlock;
+        [DataMember]
         public readonly MFT_Table mftTable;
 
+        private const string MFT_FILE_NAME = "mft.json";// Путь к служебному файлу, хранящим состояние MFT в NTFS
+        private const string SUPERBLOCK_FILE_NAME = "superblock.json";// Путь к служебному файлу, хранящим состояние SUPERBLOCKа в NTFS
+
+        [JsonConstructor]
         public FileSystem()
         {
-            if (!Exists(@"D:\NTFS")) // Если директория файловой системы не создана, то форматируем
+            if (Exists(@"D:\NTFS")) // Если директория файловой системы не создана, то форматируем
+            {
+                superBlock = GetSuperblock();
+                mftTable = GetMFT();
+            }
+            else
             {
                 superBlock = new SuperBlock();
                 mftTable = new MFT_Table();
                 Formatting();
+                Save();
             }
-            superBlock = new SuperBlock();
-            mftTable = new MFT_Table();
-            //TODO:Если корневая директория существует, значит подгружать метаданные из JSON 
         }
 
         public void CreateDirectory(string fileName)
@@ -39,7 +61,8 @@ namespace OperatingSystem.Model
             {
                 File.Create(path).Close();
                 
-                mftTable.Add(fileName, new FileInfo(path).FullName ,FileType.File);                
+                mftTable.Add(fileName, new FileInfo(path).FullName ,FileType.File);
+                Save();
             }
         }
 
@@ -53,6 +76,7 @@ namespace OperatingSystem.Model
             {
                 mftTable.Delete(new FileInfo(path).FullName, superBlock);//Удаление записи из MFT
                 File.Delete(path);
+                Save();
             }
         }
 
@@ -126,6 +150,7 @@ namespace OperatingSystem.Model
 
             FileInfo fileInfo = new FileInfo(path);
             mftTable.Edit(path, (uint)fileInfo.Length);
+            Save();
             return data;
         }
 
@@ -174,8 +199,9 @@ namespace OperatingSystem.Model
                     }
                 }
 
-                FileInfo fileInfo = new FileInfo(fileName);
+                FileInfo fileInfo = new FileInfo($@"D:\NTFS\{fileName}");
                 mftTable.Edit(fileName, (uint)fileInfo.Length);
+                Save();
             }
             catch (Exception e) { }
         }
@@ -217,6 +243,33 @@ namespace OperatingSystem.Model
                     stream.WriteTo(fileStream);
                 }
             }
+        }
+
+        /// <summary>
+        /// Загрузка сохранённого состояния MFT
+        /// </summary>
+        /// <returns></returns>
+        private MFT_Table GetMFT()
+        {
+            return Load<MFT_Table>(MFT_FILE_NAME) ?? new MFT_Table();
+        }
+
+        /// <summary>
+        /// Загрузка сохранённого состояния Superblock`а
+        /// </summary>
+        /// <returns></returns>
+        private SuperBlock GetSuperblock()
+        {
+            return Load<SuperBlock>(SUPERBLOCK_FILE_NAME) ?? new SuperBlock();
+        }
+
+        /// <summary>
+        /// Сохранение состояний MFT и Superblock`а
+        /// </summary>
+        private void Save()
+        {
+            Save(MFT_FILE_NAME, mftTable);
+            Save(SUPERBLOCK_FILE_NAME, superBlock);
         }
 
         /// <summary>
