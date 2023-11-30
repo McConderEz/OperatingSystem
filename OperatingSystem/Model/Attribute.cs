@@ -71,9 +71,11 @@ namespace OperatingSystem.Model
             //TODO:Сделать изменение количества блоков кластеров, размера флагов и временных меток.
         }
 
+
+
         [JsonConstructor]
-        public Attribute(MFTEntryHeader attributeHeader, string nameData, string fullPath, uint length, List<Indexer> indexes, FileType fileType,
-            AttributeFlags attributeFlags, uint ownerId, uint groupId , uint blocksCount)
+        public Attribute(MFTEntryHeader attributeHeader, string nameData, string fullPath, string parentsDirectory, FileType fileType, uint length, AttributeFlags attributeFlags, TimeMarks timeMarks,
+    uint ownerId, uint groupId, uint blocksCount, List<Attribute> attributesRefs, List<Indexer> indexesOnClusterBitmap)
         {
             AttributeHeader = attributeHeader;
             NameData = nameData;
@@ -84,10 +86,10 @@ namespace OperatingSystem.Model
             OwnerId = ownerId;
             GroupId = groupId;
             BlocksCount = blocksCount;
-            indexesOnClusterBitmap = indexes;
-            AttributesRefs = new List<Attribute>();
-            TimeMarks = new TimeMarks();
-            ParentsDirectory = GetParentsDir(fullPath);
+            AttributesRefs = attributesRefs;
+            TimeMarks = timeMarks;
+            ParentsDirectory = parentsDirectory;
+            this.indexesOnClusterBitmap = indexesOnClusterBitmap;
         }
 
         private static string GetParentsDir(string fullPath)

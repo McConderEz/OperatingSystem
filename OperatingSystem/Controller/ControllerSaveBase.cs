@@ -9,15 +9,16 @@ namespace OperatingSystem.Controller
 {
     public abstract class ControllerSaveBase
     {
-        protected void Save(string fileName, object item)
+        protected async Task Save(string fileName, object item)
         {
-            using (var fs = new FileStream(fileName, FileMode.OpenOrCreate))
+            using (var fs = new FileStream(fileName, FileMode.OpenOrCreate,FileAccess.Write,
+                FileShare.None,bufferSize:4096,useAsync: true))
             {
                 JsonSerializer.Serialize(fs, item);
             }
         }
 
-        protected T Load<T>(string fileName)
+        protected async Task<T> Load<T>(string fileName)
         {
             using (var fs = new FileStream(fileName, FileMode.OpenOrCreate))
             {

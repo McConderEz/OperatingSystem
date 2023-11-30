@@ -33,7 +33,7 @@ namespace OperatingSystem.Model
         {
             MFTSize = (ulong)Math.Round(TotalDiskSize * 0.125);
             MFTBackup = new List<MFT_Entry>(16);
-            int totalClusterCount = 2048;
+            int totalClusterCount = 32000;
             ClusterBitmap = new byte[totalClusterCount][]; // Создание массива массивов из 2048000 кластеров, каждый из которых равен 4кб 
 
             for (int i = 0; i < totalClusterCount; i++)

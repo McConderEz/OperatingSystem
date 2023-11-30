@@ -15,12 +15,18 @@ namespace OperatingSystem.Model
     public struct Indexer
     {
         [DataMember]
-        public int index;
+        public int Index { get; set; }
+
+        
+        public Indexer()
+        {
+           Index = -1;
+        }
 
         [JsonConstructor]
-        public Indexer(int index = -1)
+        public Indexer(int index)
         {
-            this.index = index;
+            Index = index;
         }
     }
 }

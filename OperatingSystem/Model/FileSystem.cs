@@ -7,10 +7,11 @@ using System.Text.Json.Serialization;
 
 namespace OperatingSystem.Model
 {
-    //TODO:План на сегодня
-    //TODO:Починить десериализацию MFT(Проблема в Атрибуте)
-    //TODO:Починить проблему с зависанием программы вне отладки
-    //TODO:Сделать перемещение, переименование, копирование файла
+    //TODO:Оптимизировать сохранение в JSON состояние ОС при большом размере битовой карты кластеров
+    //Вариант решения:Поделить битовую карту карту кластеров на одинаковое количество отрезков в файловом эквиваленте и работать с нужными,
+    //не перегружая систему чтением до конца карты без информации
+
+    //TODO:Сделать перемещени, копирование файла
     //TODO:Сделать добавление,удаление,перемещение,переименование, копирование каталога (сложно)
     //TODO:Асинхронный доступ к файлам
 
@@ -18,7 +19,7 @@ namespace OperatingSystem.Model
     /// Файловая система NTFS
     /// </summary>
     [DataContract]
-    public class FileSystem : ControllerSaveBase,IFileSystem
+    public class FileSystem : ControllerSaveBase, IFileSystem
     {
         //TODO:Создать механику Журналирование(Логгирование действий файловой системы и возможность отката)
         [DataMember]
@@ -219,7 +220,7 @@ namespace OperatingSystem.Model
             {
                 for (var j = 0; j < superBlock.ClusterUnitSize; j++)
                 {
-                    superBlock.ClusterBitmap[indexes[i].index][j] = 0;
+                    superBlock.ClusterBitmap[indexes[i].Index][j] = 0;
                 }
             }
             mftItem.Attributes.indexesOnClusterBitmap.Clear();
@@ -251,7 +252,7 @@ namespace OperatingSystem.Model
         /// <returns></returns>
         private MFT_Table GetMFT()
         {
-            return Load<MFT_Table>(MFT_FILE_NAME) ?? new MFT_Table();
+            return Load<MFT_Table>(MFT_FILE_NAME).Result ?? new MFT_Table();
         }
 
         /// <summary>
@@ -260,7 +261,7 @@ namespace OperatingSystem.Model
         /// <returns></returns>
         private SuperBlock GetSuperblock()
         {
-            return Load<SuperBlock>(SUPERBLOCK_FILE_NAME) ?? new SuperBlock();
+            return Load<SuperBlock>(SUPERBLOCK_FILE_NAME).Result ?? new SuperBlock();
         }
 
         /// <summary>
@@ -281,6 +282,11 @@ namespace OperatingSystem.Model
             Directory.CreateDirectory(FileSystemPath);
         }
 
+        /// <summary>
+        /// Копировать файл
+        /// </summary>
+        /// <param name="path"></param>
+        /// <exception cref="NotImplementedException"></exception>
         public void CopyTo(string path)
         {
             throw new NotImplementedException();
@@ -289,6 +295,33 @@ namespace OperatingSystem.Model
         public void MoveTo(string path)
         {
             throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Переименовать файл
+        /// </summary>
+        /// <param name="oldName"></param>
+        /// <param name="newName"></param>
+        /// <exception cref="FileLoadException"></exception>
+        public void Rename(string oldName, string newName)
+        {
+            string path = @"D:\NTFS\";
+            if(File.Exists(path + oldName))
+            {
+                File.Move(path + oldName,path + newName);
+                var mftItem = mftTable.Entries.SingleOrDefault(x => x.Header.Signature == oldName); //Проверка на наличие записи в MFT 
+                path += newName;
+                if (mftItem == null)
+                {
+                    throw new FileLoadException("Файл, куда вы хотите записать информацию, не существует!", nameof(oldName));
+                }
+                else if (mftItem.Attributes.indexesOnClusterBitmap.Count != 0)
+                {
+                    FileInfo fileInfo = new FileInfo(path);
+                    mftTable.Edit(path, (uint)fileInfo.Length);
+                    Save();
+                }
+            }
         }
     }
 }

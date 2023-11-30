@@ -50,7 +50,7 @@ namespace OperatingSystem.Model
             {
                 for(int i = 0;i < entry.Attributes.indexesOnClusterBitmap.Count;i++) //Освобождение кластеров, принадлежащих файлу
                 {
-                    superBlock.MarkClusterAsFree(entry.Attributes.indexesOnClusterBitmap[i].index);
+                    superBlock.MarkClusterAsFree(entry.Attributes.indexesOnClusterBitmap[i].Index);
                 }
                 Entries.Remove(entry); //Удаляем Entry из MFT
             }
