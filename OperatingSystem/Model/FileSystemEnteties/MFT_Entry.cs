@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model
+namespace OperatingSystem.Model.FileSystemEnteties
 {
     [DataContract]
     public class MFT_Entry
@@ -19,18 +19,18 @@ namespace OperatingSystem.Model
         [DataMember]
         public string ID { get; } = Guid.NewGuid().ToString(); // Уникальный идентификатор записи
 
-        public MFT_Entry(string fileName,string fullPath ,uint sequenceNumber, FileType fileType)
+        public MFT_Entry(string fileName, string fullPath, uint sequenceNumber, FileType fileType)
         {
-            Header = new MFTEntryHeader(fileName,sequenceNumber,fileType);
-            Attributes = new Attribute(Header,fileName,fullPath , (uint)new FileInfo(fullPath).Length, fileType, AttributeFlags.NotReadOnly, 1, 1, 0);//TODO:Сделать заполнение            
+            Header = new MFTEntryHeader(fileName, sequenceNumber, fileType);
+            Attributes = new Attribute(Header, fileName, fullPath, (uint)new FileInfo(fullPath).Length, fileType, AttributeFlags.NotReadOnly, 1, 1, 0);//TODO:Сделать заполнение            
         }
 
         [JsonConstructor]
         public MFT_Entry(MFTEntryHeader header, Attribute attributes, string id)
         {
-            Header= header;
-            Attributes= attributes;
-            ID= id;
+            Header = header;
+            Attributes = attributes;
+            ID = id;
         }
     }
 }

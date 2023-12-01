@@ -6,15 +6,15 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model
+namespace OperatingSystem.Model.FileSystemEnteties
 {
     /// <summary>
     /// Предоставляет всю инфомрацию о файловой системе и томе
     /// </summary>
     [DataContract]
-    public class SuperBlock: ISuperBlock
+    public class SuperBlock : ISuperBlock
     {
-        
+
         public readonly string Signature = "VortexOs"; //Сигнатура(Имя) файловой системы(тома)
         [DataMember]
         public string ID { get; } = Guid.NewGuid().ToString();//Уникальный идентификатор тома
@@ -28,7 +28,7 @@ namespace OperatingSystem.Model
         public ulong MFTOffset { get; private set; } = 0;//Смещение MFT 
         public List<MFT_Entry> MFTBackup { get; private set; }//Копия первых 16 записей MFT        
 
-        
+
         public SuperBlock()
         {
             MFTSize = (ulong)Math.Round(TotalDiskSize * 0.125);
@@ -48,7 +48,7 @@ namespace OperatingSystem.Model
 
         [JsonConstructor]
         public SuperBlock(byte[][] clusterBitmap, string id)
-        {            
+        {
             ID = id;
             ClusterBitmap = clusterBitmap;
             MFTSize = (ulong)Math.Round(TotalDiskSize * 0.125);
@@ -57,9 +57,9 @@ namespace OperatingSystem.Model
 
 
         public bool IsClusterFree(int clusterIndex) => ClusterBitmap[clusterIndex][0] == 0;
-        
 
-        public void MarkClusterAsUsed(byte[] dataBytes,int clusterIndex)
+
+        public void MarkClusterAsUsed(byte[] dataBytes, int clusterIndex)
         {
             for (int j = 0; j < dataBytes.Length; j++)
             {
@@ -100,7 +100,7 @@ namespace OperatingSystem.Model
 
         public void MarkClusterAsFree(int clusterIndex)
         {
-            for(int i = 0;i < ClusterBitmap[clusterIndex].Length; i++)
+            for (int i = 0; i < ClusterBitmap[clusterIndex].Length; i++)
             {
                 ClusterBitmap[clusterIndex][i] = 0;
             }
@@ -112,7 +112,7 @@ namespace OperatingSystem.Model
         /// <returns></returns>
         public int FindFreeCluster()
         {
-            for(int i = 0;i < ClusterBitmap.Length;i++)
+            for (int i = 0; i < ClusterBitmap.Length; i++)
             {
                 if (ClusterBitmap[i][0] == 0)
                 {
@@ -123,6 +123,6 @@ namespace OperatingSystem.Model
             return -1;
         }
 
-        
+
     }
 }

@@ -1,12 +1,12 @@
-﻿
-using OperatingSystem.Model;
+﻿using OperatingSystem.Model.FileSystemEnteties;
 using System.Text;
 
 FileSystem fs = new FileSystem();
 
-fs.Rename("data.bin", "newData.bin");
+fs.CreateFile(@"D:\NTFS\data.bin");
+fs.WriteFile(@"D:\NTFS\data.bin", new StringBuilder("sadasdsadsadafgbvcx"));
+fs.CopyTo(@"D:\NTFS\data.bin", @"D:\NTFS\dataCopy.bin");
 
-//fs.CreateFile("data.bin");
 
 //var str = new StringBuilder();
 //char[] chars = new char[] { 'a', 'b', 'c', 'd', 'e' };

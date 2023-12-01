@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model
+namespace OperatingSystem.Model.FileSystemEnteties
 {
     [DataContract]
     public class Attribute
@@ -39,7 +39,7 @@ namespace OperatingSystem.Model
         [DataMember]
         public List<Indexer> indexesOnClusterBitmap { get; private set; } // Список индексов(начало и конец) на участки данных конкретного файла в карте св./з. кластеров
 
-        public Attribute(MFTEntryHeader attributeHeader, string nameData, string fullPath ,uint length, FileType fileType = FileType.File ,
+        public Attribute(MFTEntryHeader attributeHeader, string nameData, string fullPath, uint length, FileType fileType = FileType.File,
             AttributeFlags attributeFlags = AttributeFlags.NotReadOnly, uint ownerId = 1, uint groudId = 1, uint blocksCount = 0)
         {
             //TODO: Продумать атрибутные флаги, идентификаторы владельца и группы, когда будет сделана многопользовательская система
@@ -48,12 +48,12 @@ namespace OperatingSystem.Model
             {
                 throw new ArgumentNullException("Данные имени не могут быть пустыми", nameof(nameData));
             }
-            
-            if(string.IsNullOrWhiteSpace(fullPath))
+
+            if (string.IsNullOrWhiteSpace(fullPath))
             {
                 throw new ArgumentNullException("Полный путь не может быть пустым", nameof(fullPath));
             }
-            
+
 
             AttributeHeader = attributeHeader;
             NameData = nameData;
@@ -96,17 +96,20 @@ namespace OperatingSystem.Model
         {
             char[] separators = { '\\', '/', '\\' };
             int lastIndex = fullPath.LastIndexOfAny(separators);
-            if(lastIndex >= 0)
+            if (lastIndex >= 0)
             {
-                string result = fullPath.Substring(0,lastIndex);
+                string result = fullPath.Substring(0, lastIndex);
                 return result;
             }
 
             return "";
         }
 
-        public void Edit(uint length,uint blocksCount)
-        {            
+        public void Edit(FileInfo fileInfo,uint length, uint blocksCount)
+        {
+            FullPath = fileInfo.FullName;
+            NameData = fileInfo.Name;
+            ParentsDirectory = fileInfo.DirectoryName;
             TimeMarks.AccessTime = DateTime.Now;
             TimeMarks.ModificationTime = DateTime.Now;
             BlocksCount = blocksCount;

@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model
+namespace OperatingSystem.Model.FileSystemEnteties
 {
     /// <summary>
     /// Структура определяющие начальный и конечный индекс для участка данных в карте кластеров
@@ -17,10 +17,10 @@ namespace OperatingSystem.Model
         [DataMember]
         public int Index { get; set; }
 
-        
+
         public Indexer()
         {
-           Index = -1;
+            Index = -1;
         }
 
         [JsonConstructor]

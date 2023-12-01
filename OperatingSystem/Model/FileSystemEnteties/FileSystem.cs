@@ -5,13 +5,13 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json.Serialization;
 
-namespace OperatingSystem.Model
+namespace OperatingSystem.Model.FileSystemEnteties
 {
     //TODO:Оптимизировать сохранение в JSON состояние ОС при большом размере битовой карты кластеров
     //Вариант решения:Поделить битовую карту карту кластеров на одинаковое количество отрезков в файловом эквиваленте и работать с нужными,
     //не перегружая систему чтением до конца карты без информации
 
-    //TODO:Сделать перемещени, копирование файла
+    //TODO:Сделать перемещение(если реализована многоуровневая фс), копирование файла
     //TODO:Сделать добавление,удаление,перемещение,переименование, копирование каталога (сложно)
     //TODO:Асинхронный доступ к файлам
 
@@ -50,21 +50,24 @@ namespace OperatingSystem.Model
         }
 
         public void CreateDirectory(string fileName)
-        {            
+        {
             throw new NotImplementedException();
         }
 
 
-        public void CreateFile(string fileName)
+        public void CreateFile(string fullFilePath)
         {
-            string path = $@"D:\NTFS\{fileName}";
-            if (!File.Exists(path))
-            {
-                File.Create(path).Close();
-                
-                mftTable.Add(fileName, new FileInfo(path).FullName ,FileType.File);
-                Save();
+            try
+            {                
+                if (!File.Exists(fullFilePath))
+                {
+                    File.Create(fullFilePath).Close();
+
+                    mftTable.Add(fullFilePath, new FileInfo(fullFilePath).FullName, FileType.File);
+                    Save();
+                }
             }
+            catch(Exception ex) { }
         }
 
         /// <summary>
@@ -73,32 +76,35 @@ namespace OperatingSystem.Model
         /// <param name="path"></param>
         public void Delete(string path)
         {
-            if(File.Exists(path)) 
+            try
             {
-                mftTable.Delete(new FileInfo(path).FullName, superBlock);//Удаление записи из MFT
-                File.Delete(path);
-                Save();
-            }
+                if (File.Exists(path))
+                {
+                    mftTable.Delete(new FileInfo(path).FullName, superBlock);//Удаление записи из MFT
+                    File.Delete(path);
+                    Save();
+                }
+            } catch(Exception ex) { }
         }
 
         public void Dispose()
-        { 
+        {
 
         }
 
         public bool Exists(string path)
         {
-            return ProcessDirectory(path, "D:\\", 1 ,5);
-        }      
+            return ProcessDirectory(path, "D:\\", 1, 5);
+        }
 
-        public static bool ProcessDirectory(string targetDirectory, string searchDirectory, int depth,int maxDepth)
+        public static bool ProcessDirectory(string targetDirectory, string searchDirectory, int depth, int maxDepth)
         {
-            if(string.Equals(targetDirectory, searchDirectory, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(targetDirectory, searchDirectory, StringComparison.OrdinalIgnoreCase))
             {
                 return true; //Указанная директория найдена
             }
 
-            if(depth >= maxDepth)
+            if (depth >= maxDepth)
             {
                 return false; // Достигнута максимальная допустимая глубина поиска, а директория так и не была найдена
             }
@@ -108,7 +114,7 @@ namespace OperatingSystem.Model
                 string[] subdirectoryEntries = Directory.GetDirectories(searchDirectory);
                 foreach (string subdirectory in subdirectoryEntries)
                 {
-                    if (ProcessDirectory(targetDirectory, subdirectory,depth+1,maxDepth))
+                    if (ProcessDirectory(targetDirectory, subdirectory, depth + 1, maxDepth))
                     {
                         FileSystemPath = subdirectory;//Изменение ожидаемого пути файловой системы
                         return true; //Найдена в поддиректориях
@@ -141,18 +147,27 @@ namespace OperatingSystem.Model
         /// </summary>
         /// <param name="path">Путь к файлу</param>
         /// <returns></returns>
-        public StringBuilder ReadFile(string path)
+        public StringBuilder? ReadFile(string path)
         {
-            var data = new StringBuilder();
-            using(StreamReader streamReader = new StreamReader(path))
+            try
             {
-                data.AppendLine(streamReader.ReadToEnd());
+                var data = new StringBuilder();
+                using (StreamReader streamReader = new StreamReader(path))
+                {
+                    data.AppendLine(streamReader.ReadToEnd());
+                }
+
+                FileInfo fileInfo = new FileInfo(path);
+                mftTable.Edit(path, (uint)fileInfo.Length,fileInfo);
+                Save();
+                return data;
+            }
+            catch(Exception ex)
+            {
+
             }
 
-            FileInfo fileInfo = new FileInfo(path);
-            mftTable.Edit(path, (uint)fileInfo.Length);
-            Save();
-            return data;
+            return null;
         }
 
         /// <summary>
@@ -161,15 +176,15 @@ namespace OperatingSystem.Model
         /// <param name="fileName">Имя файла</param>
         /// <param name="data">Данные на ввод</param>
         /// <exception cref="FileLoadException"></exception>
-        public void WriteFile(string fileName, StringBuilder data)
+        public void WriteFile(string fullPath, StringBuilder data)
         {
             try
             {
-                var mftItem = mftTable.Entries.SingleOrDefault(x => x.Header.Signature == fileName); //Проверка на наличие записи в MFT 
+                var mftItem = mftTable.Entries.SingleOrDefault(x => x.Attributes.FullPath == fullPath); //Проверка на наличие записи в MFT 
 
                 if (mftItem == null)
                 {
-                    throw new FileLoadException("Файл, куда вы хотите записать информацию, не существует!", nameof(fileName));
+                    throw new FileLoadException("Файл, куда вы хотите записать информацию, не существует!", nameof(fullPath));
                 }
                 else if (mftItem.Attributes.indexesOnClusterBitmap.Count != 0)
                 {
@@ -184,15 +199,15 @@ namespace OperatingSystem.Model
                     {
                         if (superBlock.IsClusterFree(i) && dataSize <= 4096) // Запись данных в файл, размер которых не превышает размер одного кластера(4кб)
                         {
-                            superBlock.MarkClusterAsUsed(dataBytes,i);
+                            superBlock.MarkClusterAsUsed(dataBytes, i);
                             mftItem.Attributes.indexesOnClusterBitmap.Add(new Indexer(i));
-                            WriteBytesToFile(fileName, stream, dataBytes, dataSize);
+                            WriteBytesToFile(fullPath, stream, dataBytes, dataSize);
                             break;
                         }
                         else if (superBlock.IsClusterFree(i) && dataSize > 4096) // Запись данных в файл, размер которых больше одного кластера(4кб)
                         {
                             superBlock.MarkClustersAsUsedForLargeFile(mftItem, dataBytes, dataSize, i);
-                            WriteBytesToFile(fileName, stream, dataBytes, dataSize);
+                            WriteBytesToFile(fullPath, stream, dataBytes, dataSize);
                             break;
                         }
 
@@ -200,14 +215,14 @@ namespace OperatingSystem.Model
                     }
                 }
 
-                FileInfo fileInfo = new FileInfo($@"D:\NTFS\{fileName}");
-                mftTable.Edit(fileName, (uint)fileInfo.Length);
+                FileInfo fileInfo = new FileInfo(fullPath);
+                mftTable.Edit(fullPath, (uint)fileInfo.Length,fileInfo);
                 Save();
             }
             catch (Exception e) { }
         }
 
-        
+
 
         /// <summary>
         /// Очистка указателей на битовую карту кластеров записи MFT
@@ -215,15 +230,19 @@ namespace OperatingSystem.Model
         /// <param name="mftItem"></param>
         private void ReWriteIndexesOfMFTEntry(MFT_Entry? mftItem)
         {
-            var indexes = mftItem.Attributes.indexesOnClusterBitmap;
-            for (int i = 0; i < indexes.Count; i++)
+            try
             {
-                for (var j = 0; j < superBlock.ClusterUnitSize; j++)
+                var indexes = mftItem.Attributes.indexesOnClusterBitmap;
+                for (int i = 0; i < indexes.Count; i++)
                 {
-                    superBlock.ClusterBitmap[indexes[i].Index][j] = 0;
+                    for (var j = 0; j < superBlock.ClusterUnitSize; j++)
+                    {
+                        superBlock.ClusterBitmap[indexes[i].Index][j] = 0;
+                    }
                 }
+                mftItem.Attributes.indexesOnClusterBitmap.Clear();
             }
-            mftItem.Attributes.indexesOnClusterBitmap.Clear();
+            catch (Exception e) { }
         }
 
         /// <summary>
@@ -233,17 +252,21 @@ namespace OperatingSystem.Model
         /// <param name="stream"></param>
         /// <param name="dataBytes"></param>
         /// <param name="dataSize"></param>
-        private static void WriteBytesToFile(string fileName, MemoryStream stream, byte[] dataBytes, int dataSize)
+        private static void WriteBytesToFile(string fullPath, MemoryStream stream, byte[] dataBytes, int dataSize)
         {
-            using (BinaryWriter writer = new BinaryWriter(stream))
+            try
             {
-                writer.Write(dataBytes);
-                using (FileStream fileStream = new FileStream($@"D:\NTFS\{fileName}", FileMode.Open, FileAccess.Write
-                    , FileShare.None, dataSize, FileOptions.WriteThrough))
+                using (BinaryWriter writer = new BinaryWriter(stream))
                 {
-                    stream.WriteTo(fileStream);
+                    writer.Write(dataBytes);
+                    using (FileStream fileStream = new FileStream(fullPath, FileMode.Open, FileAccess.Write
+                        , FileShare.None, dataSize, FileOptions.WriteThrough))
+                    {
+                        stream.WriteTo(fileStream);
+                    }
                 }
             }
+            catch (Exception ex) { }
         }
 
         /// <summary>
@@ -267,10 +290,10 @@ namespace OperatingSystem.Model
         /// <summary>
         /// Сохранение состояний MFT и Superblock`а
         /// </summary>
-        private void Save()
+        private async void Save()
         {
-            Save(MFT_FILE_NAME, mftTable);
-            Save(SUPERBLOCK_FILE_NAME, superBlock);
+            await Save(MFT_FILE_NAME, mftTable);
+            await Save(SUPERBLOCK_FILE_NAME, superBlock);
         }
 
         /// <summary>
@@ -287,9 +310,23 @@ namespace OperatingSystem.Model
         /// </summary>
         /// <param name="path"></param>
         /// <exception cref="NotImplementedException"></exception>
-        public void CopyTo(string path)
+        public void CopyTo(string oldFilePath,string newFilePath)
         {
-            throw new NotImplementedException();
+            try
+            {
+                if (File.Exists(oldFilePath))
+                {
+                    CreateFile(newFilePath);
+                    FileInfo fileInfoNewFile = new FileInfo(newFilePath);
+
+                    if(mftTable.Entries.SingleOrDefault(x => x.Attributes.FullPath.Equals(oldFilePath)).Attributes.Length > 0)
+                    {
+                        WriteFile(newFilePath, ReadFile(oldFilePath));
+                    }
+                    Save();
+                }
+            }
+            catch(Exception ex) { }
         }
 
         public void MoveTo(string path)
@@ -306,19 +343,20 @@ namespace OperatingSystem.Model
         public void Rename(string oldName, string newName)
         {
             string path = @"D:\NTFS\";
-            if(File.Exists(path + oldName))
+            if (File.Exists(path + oldName))
             {
-                File.Move(path + oldName,path + newName);
+                File.Move(path + oldName, path + newName);
                 var mftItem = mftTable.Entries.SingleOrDefault(x => x.Header.Signature == oldName); //Проверка на наличие записи в MFT 
                 path += newName;
                 if (mftItem == null)
                 {
                     throw new FileLoadException("Файл, куда вы хотите записать информацию, не существует!", nameof(oldName));
                 }
-                else if (mftItem.Attributes.indexesOnClusterBitmap.Count != 0)
+                else 
                 {
                     FileInfo fileInfo = new FileInfo(path);
-                    mftTable.Edit(path, (uint)fileInfo.Length);
+                    string oldPath = $@"D:\NTFS\{oldName}";
+                    mftTable.Edit(oldPath, (uint)fileInfo.Length, fileInfo);
                     Save();
                 }
             }

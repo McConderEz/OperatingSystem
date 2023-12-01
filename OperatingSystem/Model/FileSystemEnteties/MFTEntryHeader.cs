@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model
+namespace OperatingSystem.Model.FileSystemEnteties
 {
     [DataContract]
     public struct MFTEntryHeader
@@ -25,9 +25,9 @@ namespace OperatingSystem.Model
         {
             if (string.IsNullOrWhiteSpace(signature))
             {
-                throw new ArgumentNullException("Сигнатура не может быть пустой",nameof(signature));
-            }            
-            if(sequenceNumber < 0)
+                throw new ArgumentNullException("Сигнатура не может быть пустой", nameof(signature));
+            }
+            if (sequenceNumber < 0)
             {
                 throw new ArgumentException("Номер последовательности не может быть меньше нуля!", nameof(sequenceNumber));
             }

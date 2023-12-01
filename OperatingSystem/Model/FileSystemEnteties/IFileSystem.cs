@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model
+namespace OperatingSystem.Model.FileSystemEnteties
 {
-    public interface IFileSystem:IDisposable
+    public interface IFileSystem : IDisposable
     {
         //TODO: Переделать в асинхронку
         ICollection<string> GetEntities(string path);
@@ -17,7 +17,7 @@ namespace OperatingSystem.Model
         void CreateDirectory(string path);
         void Formatting();
         void Delete(string path);
-        void CopyTo(string path);
+        void CopyTo(string oldFilePath, string newFilePath);
         void MoveTo(string path);
         void Rename(string path, string newName);
     }

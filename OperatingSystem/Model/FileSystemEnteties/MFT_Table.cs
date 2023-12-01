@@ -6,18 +6,18 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model
+namespace OperatingSystem.Model.FileSystemEnteties
 {
     /// <summary>
     /// Предоставляет хранение записей, которые содержат метаданные о файлах и ссылки на них
     /// </summary>
     [DataContract]
-    public class MFT_Table: IMFT_Table
+    public class MFT_Table : IMFT_Table
     {
         [DataMember]
         public List<MFT_Entry> Entries { get; private set; } // Содержит все записи
 
-        
+
         public MFT_Table()
         {
             Entries = new List<MFT_Entry>();
@@ -34,9 +34,9 @@ namespace OperatingSystem.Model
         /// Добавление записи в таблицу при создании файла в ФС
         /// </summary>
         /// <exception cref="NotImplementedException"></exception>
-        public void Add(string fileName,string fullPath ,FileType fileType)
+        public void Add(string fileName, string fullPath, FileType fileType)
         {
-            Entries.Add(new MFT_Entry(fileName,fullPath ,(uint)Entries.Count(), fileType));
+            Entries.Add(new MFT_Entry(fileName, fullPath, (uint)Entries.Count(), fileType));
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace OperatingSystem.Model
             var entry = Entries.SingleOrDefault(x => x.Attributes.FullPath.Equals(fullPath));
             if (entry != null)
             {
-                for(int i = 0;i < entry.Attributes.indexesOnClusterBitmap.Count;i++) //Освобождение кластеров, принадлежащих файлу
+                for (int i = 0; i < entry.Attributes.indexesOnClusterBitmap.Count; i++) //Освобождение кластеров, принадлежащих файлу
                 {
                     superBlock.MarkClusterAsFree(entry.Attributes.indexesOnClusterBitmap[i].Index);
                 }
@@ -60,12 +60,12 @@ namespace OperatingSystem.Model
         /// Изменение записи в таблицы при чтении/записи в файл
         /// </summary>
         /// <exception cref="NotImplementedException"></exception>
-        public void Edit(string fullPath, uint length)
+        public void Edit(string fullPath, uint length, FileInfo fileInfo)
         {
             var entry = Entries.SingleOrDefault(x => x.Attributes.FullPath.Equals(fullPath));
-            if(entry != null)
+            if (entry != null)
             {
-                entry.Attributes.Edit(length, (uint)entry.Attributes.indexesOnClusterBitmap.Count);
+                entry.Attributes.Edit(fileInfo,length, (uint)entry.Attributes.indexesOnClusterBitmap.Count);
             }
         }
     }
