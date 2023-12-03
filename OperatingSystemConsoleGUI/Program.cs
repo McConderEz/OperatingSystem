@@ -1,10 +1,10 @@
 ﻿using OperatingSystem.Model.FileSystemEnteties;
 using System.Text;
 
-FileSystem fs = new FileSystem();
+FileSystem fs = FileSystem.Instance;
 
 fs.CreateFile(@"D:\NTFS\data.bin");
-fs.WriteFile(@"D:\NTFS\data.bin", new StringBuilder("sadasdsadsadafgbvcx"));
+fs.WriteFile(@"D:\NTFS\data.bin", new StringBuilder("123"), true);
 fs.CopyTo(@"D:\NTFS\data.bin", @"D:\NTFS\dataCopy.bin");
 
 

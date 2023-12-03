@@ -12,7 +12,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
         ICollection<string> GetEntities(string path);
         bool Exists(string path);
         void CreateFile(string fileName);
-        void WriteFile(string fileName, StringBuilder data);
+        void WriteFile(string fileName, StringBuilder data, bool append);
         StringBuilder ReadFile(string path);
         void CreateDirectory(string path);
         void Formatting();

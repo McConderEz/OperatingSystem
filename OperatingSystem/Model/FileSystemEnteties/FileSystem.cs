@@ -11,9 +11,13 @@ namespace OperatingSystem.Model.FileSystemEnteties
     //Вариант решения:Поделить битовую карту карту кластеров на одинаковое количество отрезков в файловом эквиваленте и работать с нужными,
     //не перегружая систему чтением до конца карты без информации
 
-    //TODO:Сделать перемещение(если реализована многоуровневая фс), копирование файла
+    //Пока не трогаем
+    //TODO:Сделать перемещение(если реализована многоуровневая фс)
     //TODO:Сделать добавление,удаление,перемещение,переименование, копирование каталога (сложно)
+
     //TODO:Асинхронный доступ к файлам
+    //TODO:Группы пользователей
+    //TODO:Доступ к файлам
 
     /// <summary>
     /// Файловая система NTFS
@@ -29,11 +33,14 @@ namespace OperatingSystem.Model.FileSystemEnteties
         [DataMember]
         public readonly MFT_Table mftTable;
 
+        private static FileSystem instance;
+        private static readonly object lockObject = new object();
+
         private const string MFT_FILE_NAME = "mft.json";// Путь к служебному файлу, хранящим состояние MFT в NTFS
         private const string SUPERBLOCK_FILE_NAME = "superblock.json";// Путь к служебному файлу, хранящим состояние SUPERBLOCKа в NTFS
 
-        [JsonConstructor]
-        public FileSystem()
+        //[JsonConstructor]
+        private FileSystem()
         {
             if (Exists(@"D:\NTFS")) // Если директория файловой системы не создана, то форматируем
             {
@@ -46,6 +53,24 @@ namespace OperatingSystem.Model.FileSystemEnteties
                 mftTable = new MFT_Table();
                 Formatting();
                 Save();
+            }
+        }
+
+        public static FileSystem Instance
+        {
+            get
+            {
+                if(instance == null)
+                {
+                    lock(lockObject)
+                    {
+                        if( instance == null )
+                        {
+                            instance = new FileSystem();
+                        }
+                    }
+                }
+                return instance;
             }
         }
 
@@ -151,16 +176,16 @@ namespace OperatingSystem.Model.FileSystemEnteties
         {
             try
             {
-                var data = new StringBuilder();
+                string data = "";
                 using (StreamReader streamReader = new StreamReader(path))
                 {
-                    data.AppendLine(streamReader.ReadToEnd());
+                    data = streamReader.ReadToEnd();
                 }
 
                 FileInfo fileInfo = new FileInfo(path);
                 mftTable.Edit(path, (uint)fileInfo.Length,fileInfo);
                 Save();
-                return data;
+                return new StringBuilder(data);
             }
             catch(Exception ex)
             {
@@ -176,7 +201,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
         /// <param name="fileName">Имя файла</param>
         /// <param name="data">Данные на ввод</param>
         /// <exception cref="FileLoadException"></exception>
-        public void WriteFile(string fullPath, StringBuilder data)
+        public void WriteFile(string fullPath, StringBuilder data, bool append)
         {
             try
             {
@@ -201,13 +226,13 @@ namespace OperatingSystem.Model.FileSystemEnteties
                         {
                             superBlock.MarkClusterAsUsed(dataBytes, i);
                             mftItem.Attributes.indexesOnClusterBitmap.Add(new Indexer(i));
-                            WriteBytesToFile(fullPath, stream, dataBytes, dataSize);
+                            WriteBytesToFile(fullPath, stream, dataBytes, dataSize, append);
                             break;
                         }
                         else if (superBlock.IsClusterFree(i) && dataSize > 4096) // Запись данных в файл, размер которых больше одного кластера(4кб)
                         {
                             superBlock.MarkClustersAsUsedForLargeFile(mftItem, dataBytes, dataSize, i);
-                            WriteBytesToFile(fullPath, stream, dataBytes, dataSize);
+                            WriteBytesToFile(fullPath, stream, dataBytes, dataSize, append);
                             break;
                         }
 
@@ -252,14 +277,20 @@ namespace OperatingSystem.Model.FileSystemEnteties
         /// <param name="stream"></param>
         /// <param name="dataBytes"></param>
         /// <param name="dataSize"></param>
-        private static void WriteBytesToFile(string fullPath, MemoryStream stream, byte[] dataBytes, int dataSize)
+        private static void WriteBytesToFile(string fullPath, MemoryStream stream, byte[] dataBytes, int dataSize, bool append)
         {
             try
             {
+                FileMode fileMode = FileMode.Create;
+                if (append)
+                {
+                    fileMode = FileMode.Append;
+                }
+
                 using (BinaryWriter writer = new BinaryWriter(stream))
                 {
                     writer.Write(dataBytes);
-                    using (FileStream fileStream = new FileStream(fullPath, FileMode.Open, FileAccess.Write
+                    using (FileStream fileStream = new FileStream(fullPath, fileMode, FileAccess.Write
                         , FileShare.None, dataSize, FileOptions.WriteThrough))
                     {
                         stream.WriteTo(fileStream);
@@ -321,7 +352,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
 
                     if(mftTable.Entries.SingleOrDefault(x => x.Attributes.FullPath.Equals(oldFilePath)).Attributes.Length > 0)
                     {
-                        WriteFile(newFilePath, ReadFile(oldFilePath));
+                        WriteFile(newFilePath, ReadFile(oldFilePath), false);
                     }
                     Save();
                 }
