@@ -8,7 +8,6 @@ namespace OperatingSystem.Model.FileSystemEnteties
 {
     public interface IFileSystem : IDisposable
     {
-        //TODO: Переделать в асинхронку
         ICollection<string> GetEntities(string path);
         bool Exists(string path);
         void CreateFile(string fileName);

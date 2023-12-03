@@ -22,7 +22,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
         public MFT_Entry(string fileName, string fullPath, uint sequenceNumber, FileType fileType)
         {
             Header = new MFTEntryHeader(fileName, sequenceNumber, fileType);
-            Attributes = new Attribute(Header, fileName, fullPath, (uint)new FileInfo(fullPath).Length, fileType, AttributeFlags.NotReadOnly, 1, 1, 0);//TODO:Сделать заполнение            
+            Attributes = new Attribute(Header, fileName, fullPath, (uint)new FileInfo(fullPath).Length, fileType, AttributeFlags.NotReadOnly, 1, 1, 0);//TODO:Сделать многопользовательскую систему, а потом заполнить           
         }
 
         [JsonConstructor]

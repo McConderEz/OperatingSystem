@@ -15,7 +15,6 @@ namespace OperatingSystem.Model.FileSystemEnteties
     //TODO:Сделать перемещение(если реализована многоуровневая фс)
     //TODO:Сделать добавление,удаление,перемещение,переименование, копирование каталога (сложно)
 
-    //TODO:Асинхронный доступ к файлам
     //TODO:Группы пользователей
     //TODO:Доступ к файлам
 
@@ -39,6 +38,9 @@ namespace OperatingSystem.Model.FileSystemEnteties
         private const string MFT_FILE_NAME = "mft.json";// Путь к служебному файлу, хранящим состояние MFT в NTFS
         private const string SUPERBLOCK_FILE_NAME = "superblock.json";// Путь к служебному файлу, хранящим состояние SUPERBLOCKа в NTFS
 
+        private static Semaphore semaphore = new Semaphore(1, 1); // Семафор для синхронизации методов с недопустимым разделением ресурсов
+        private int count = 1;
+
         //[JsonConstructor]
         private FileSystem()
         {
@@ -52,7 +54,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
                 superBlock = new SuperBlock();
                 mftTable = new MFT_Table();
                 Formatting();
-                Save();
+                SaveAsync();
             }
         }
 
@@ -89,7 +91,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
                     File.Create(fullFilePath).Close();
 
                     mftTable.Add(fullFilePath, new FileInfo(fullFilePath).FullName, FileType.File);
-                    Save();
+                    SaveAsync();
                 }
             }
             catch(Exception ex) { }
@@ -107,7 +109,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
                 {
                     mftTable.Delete(new FileInfo(path).FullName, superBlock);//Удаление записи из MFT
                     File.Delete(path);
-                    Save();
+                    SaveAsync();
                 }
             } catch(Exception ex) { }
         }
@@ -184,7 +186,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
 
                 FileInfo fileInfo = new FileInfo(path);
                 mftTable.Edit(path, (uint)fileInfo.Length,fileInfo);
-                Save();
+                SaveAsync();
                 return new StringBuilder(data);
             }
             catch(Exception ex)
@@ -242,7 +244,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
 
                 FileInfo fileInfo = new FileInfo(fullPath);
                 mftTable.Edit(fullPath, (uint)fileInfo.Length,fileInfo);
-                Save();
+                SaveAsync();
             }
             catch (Exception e) { }
         }
@@ -306,7 +308,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
         /// <returns></returns>
         private MFT_Table GetMFT()
         {
-            return Load<MFT_Table>(MFT_FILE_NAME).Result ?? new MFT_Table();
+            return LoadAsync<MFT_Table>(MFT_FILE_NAME).Result ?? new MFT_Table();
         }
 
         /// <summary>
@@ -315,16 +317,24 @@ namespace OperatingSystem.Model.FileSystemEnteties
         /// <returns></returns>
         private SuperBlock GetSuperblock()
         {
-            return Load<SuperBlock>(SUPERBLOCK_FILE_NAME).Result ?? new SuperBlock();
+            return LoadAsync<SuperBlock>(SUPERBLOCK_FILE_NAME).Result ?? new SuperBlock();
         }
 
         /// <summary>
         /// Сохранение состояний MFT и Superblock`а
         /// </summary>
-        private async void Save()
+        private async void SaveAsync()
         {
-            await Save(MFT_FILE_NAME, mftTable);
-            await Save(SUPERBLOCK_FILE_NAME, superBlock);
+            while (count > 0)
+            {
+                semaphore.WaitOne();
+
+                await SaveAsync(MFT_FILE_NAME, mftTable);
+                await SaveAsync(SUPERBLOCK_FILE_NAME, superBlock);
+
+                semaphore.Release();
+                count--;
+            }
         }
 
         /// <summary>
@@ -354,7 +364,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
                     {
                         WriteFile(newFilePath, ReadFile(oldFilePath), false);
                     }
-                    Save();
+                    SaveAsync();
                 }
             }
             catch(Exception ex) { }
@@ -388,7 +398,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
                     FileInfo fileInfo = new FileInfo(path);
                     string oldPath = $@"D:\NTFS\{oldName}";
                     mftTable.Edit(oldPath, (uint)fileInfo.Length, fileInfo);
-                    Save();
+                    SaveAsync();
                 }
             }
         }

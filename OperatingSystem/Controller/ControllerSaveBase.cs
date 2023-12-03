@@ -9,7 +9,7 @@ namespace OperatingSystem.Controller
 {
     public abstract class ControllerSaveBase
     {
-        protected async Task Save(string fileName, object item)
+        protected async Task SaveAsync(string fileName, object item)
         {
             using (var fs = new FileStream(fileName, FileMode.OpenOrCreate,FileAccess.Write,
                 FileShare.None,bufferSize:4096,useAsync: true))
@@ -18,7 +18,7 @@ namespace OperatingSystem.Controller
             }
         }
 
-        protected async Task<T> Load<T>(string fileName)
+        protected async Task<T> LoadAsync<T>(string fileName)
         {
             using (var fs = new FileStream(fileName, FileMode.OpenOrCreate))
             {
