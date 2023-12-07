@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model.FileSystemEnteties
+namespace OperatingSystem.Model.FileSystemEntities
 {
     public interface IFileSystem : IDisposable
     {
@@ -19,5 +19,6 @@ namespace OperatingSystem.Model.FileSystemEnteties
         void CopyTo(string oldFilePath, string newFilePath);
         void MoveTo(string path);
         void Rename(string path, string newName);
+        void ChangeMode(string fullPath, UsersAccessFlags usersAccessFlags);
     }
 }

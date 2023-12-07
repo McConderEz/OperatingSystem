@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model.FileSystemEnteties
+namespace OperatingSystem.Model.FileSystemEntities
 {
     public enum FileType
     {

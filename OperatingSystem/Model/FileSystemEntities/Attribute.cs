@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model.FileSystemEnteties
+namespace OperatingSystem.Model.FileSystemEntities
 {
     [DataContract]
     public class Attribute
@@ -31,18 +31,19 @@ namespace OperatingSystem.Model.FileSystemEnteties
         [DataMember]
         public uint OwnerId { get; private set; } // Идентификатор владельца
         [DataMember]
-        public uint GroupId { get; private set; } // Идентификатор группы
+        public List<uint> GroupId { get; private set; } // Идентификатор группы
         [DataMember]
         public uint BlocksCount { get; private set; } // Число блоков данных
         [DataMember]
         public List<Attribute> AttributesRefs { get; private set; } // Ссылки на атрибуты, связанные с данным атрибутом
         [DataMember]
         public List<Indexer> indexesOnClusterBitmap { get; private set; } // Список индексов(начало и конец) на участки данных конкретного файла в карте св./з. кластеров
+        [DataMember]
+        public UsersAccessFlags AccessFlags { get; private set; }
 
-        public Attribute(MFTEntryHeader attributeHeader, string nameData, string fullPath, uint length, FileType fileType = FileType.File,
-            AttributeFlags attributeFlags = AttributeFlags.NotReadOnly, uint ownerId = 1, uint groudId = 1, uint blocksCount = 0)
+        public Attribute(MFTEntryHeader attributeHeader, string nameData, string fullPath, uint length, List<uint> groudId, UsersAccessFlags accessFlags, FileType fileType = FileType.File,
+            AttributeFlags attributeFlags = AttributeFlags.Modify, uint ownerId = 1, uint blocksCount = 0)
         {
-            //TODO: Продумать атрибутные флаги, идентификаторы владельца и группы, когда будет сделана многопользовательская система
 
             if (string.IsNullOrWhiteSpace(nameData))
             {
@@ -68,14 +69,15 @@ namespace OperatingSystem.Model.FileSystemEnteties
             AttributesRefs = new List<Attribute>();
             TimeMarks = new TimeMarks();
             ParentsDirectory = GetParentsDir(fullPath);
-            //TODO:Сделать изменение количества блоков кластеров, размера,флагов и временных меток.
+            AccessFlags = accessFlags;
+
         }
 
 
 
         [JsonConstructor]
         public Attribute(MFTEntryHeader attributeHeader, string nameData, string fullPath, string parentsDirectory, FileType fileType, uint length, AttributeFlags attributeFlags, TimeMarks timeMarks,
-    uint ownerId, uint groupId, uint blocksCount, List<Attribute> attributesRefs, List<Indexer> indexesOnClusterBitmap)
+    uint ownerId, List<uint> groupId, uint blocksCount, List<Attribute> attributesRefs, List<Indexer> indexesOnClusterBitmap, UsersAccessFlags accessFlags)
         {
             AttributeHeader = attributeHeader;
             NameData = nameData;
@@ -90,6 +92,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
             TimeMarks = timeMarks;
             ParentsDirectory = parentsDirectory;
             this.indexesOnClusterBitmap = indexesOnClusterBitmap;
+            AccessFlags = accessFlags;
         }
 
         private static string GetParentsDir(string fullPath)
@@ -114,6 +117,11 @@ namespace OperatingSystem.Model.FileSystemEnteties
             TimeMarks.ModificationTime = DateTime.Now;
             BlocksCount = blocksCount;
             Length = length;
+        }
+
+        public void ChangeMode(UsersAccessFlags usersAccessFlags)
+        {
+            AccessFlags = usersAccessFlags;
         }
     }
 }

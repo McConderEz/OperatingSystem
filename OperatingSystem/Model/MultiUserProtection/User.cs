@@ -16,7 +16,7 @@ namespace OperatingSystem.Model.MultiUserProtection
         [DataMember]
         public uint Id { get; init; }
         [DataMember]
-        public uint? IdGroup { get; set; }
+        public List<uint> IdGroup { get; set; }
         [DataMember]
         public string Login { get; set; }
         [DataMember]
@@ -27,21 +27,16 @@ namespace OperatingSystem.Model.MultiUserProtection
         public DateTime LastLoginDate { get; set; }
 
         [JsonConstructor]
-        public User(uint id, uint? idGroup, string login, string password, AccountType accountType = AccountType.Normal)
+        public User(uint id, List<uint> idGroup, string login, string hashPassword, DateTime lastLoginDate, AccountType accountType = AccountType.Normal)
         {
             if(id <= 0)
             {
                 throw new ArgumentException("Id не может быть равен или меньше 0!", nameof(id));
             }
 
-            if(idGroup < 0)
+            if(string.IsNullOrWhiteSpace(hashPassword))
             {
-                throw new ArgumentException("GroupId не может быть меньше 0!", nameof(IdGroup));
-            }
-
-            if(string.IsNullOrWhiteSpace(password))
-            {
-                throw new ArgumentNullException("HashPassword не может быть пустым!",nameof(password));
+                throw new ArgumentNullException("HashPassword не может быть пустым!",nameof(hashPassword));
             }
 
             if(string.IsNullOrWhiteSpace(login))
@@ -52,9 +47,9 @@ namespace OperatingSystem.Model.MultiUserProtection
             Id = id;
             IdGroup = idGroup;
             Login = login;
-            HashPassword = GenerateHash(password); 
+            HashPassword = hashPassword; 
             AccountType = accountType;
-            LastLoginDate = DateTime.Now;
+            LastLoginDate = lastLoginDate;
         }
 
         

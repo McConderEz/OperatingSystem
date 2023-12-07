@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model.FileSystemEnteties
+namespace OperatingSystem.Model.FileSystemEntities
 {
     /// <summary>
     /// Предоставляет всю инфомрацию о файловой системе и томе

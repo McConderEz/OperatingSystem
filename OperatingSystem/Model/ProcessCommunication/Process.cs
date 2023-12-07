@@ -1,4 +1,4 @@
-﻿using OperatingSystem.Model.FileSystemEnteties;
+﻿using OperatingSystem.Model.FileSystemEntities;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model.FileSystemEnteties
+namespace OperatingSystem.Model.FileSystemEntities
 {
     [DataContract]
     public class MFT_Entry
@@ -19,10 +19,11 @@ namespace OperatingSystem.Model.FileSystemEnteties
         [DataMember]
         public string ID { get; } = Guid.NewGuid().ToString(); // Уникальный идентификатор записи
 
-        public MFT_Entry(string fileName, string fullPath, uint sequenceNumber, FileType fileType)
+        public MFT_Entry(string fileName, string fullPath, uint sequenceNumber, FileType fileType, string logSequenceNumber, uint ownerId, List<uint> groupId)
         {
-            Header = new MFTEntryHeader(fileName, sequenceNumber, fileType);
-            Attributes = new Attribute(Header, fileName, fullPath, (uint)new FileInfo(fullPath).Length, fileType, AttributeFlags.NotReadOnly, 1, 1, 0);//TODO:Сделать многопользовательскую систему, а потом заполнить           
+            Header = new MFTEntryHeader(fileName, sequenceNumber,logSequenceNumber ,fileType);
+            Attributes = new Attribute(Header, fileName, fullPath, (uint)new FileInfo(fullPath).Length, groupId,new UsersAccessFlags(AttributeFlags.FullControl,AttributeFlags.None,AttributeFlags.None) ,
+                fileType, AttributeFlags.FullControl, ownerId, 0);      
         }
 
         [JsonConstructor]

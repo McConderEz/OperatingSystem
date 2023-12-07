@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model.FileSystemEnteties
+namespace OperatingSystem.Model.FileSystemEntities
 {
     /// <summary>
     /// Предоставляет хранение записей, которые содержат метаданные о файлах и ссылки на них
@@ -34,9 +34,9 @@ namespace OperatingSystem.Model.FileSystemEnteties
         /// Добавление записи в таблицу при создании файла в ФС
         /// </summary>
         /// <exception cref="NotImplementedException"></exception>
-        public void Add(string fileName, string fullPath, FileType fileType)
+        public void Add(string fileName, string fullPath, FileType fileType, string logSequenceNumber, uint ownerId, List<uint> groupId)
         {
-            Entries.Add(new MFT_Entry(fileName, fullPath, (uint)Entries.Count(), fileType));
+            Entries.Add(new MFT_Entry(fileName, fullPath, (uint)Entries.Count(), fileType, logSequenceNumber, ownerId, groupId));
         }
 
         /// <summary>

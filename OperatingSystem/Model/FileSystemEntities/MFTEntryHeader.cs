@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace OperatingSystem.Model.FileSystemEnteties
+namespace OperatingSystem.Model.FileSystemEntities
 {
     [DataContract]
     public struct MFTEntryHeader
@@ -14,14 +14,14 @@ namespace OperatingSystem.Model.FileSystemEnteties
         [DataMember]
         public string Signature { get; private set; }
         [DataMember]
-        public uint LogSequenceNumber { get; private set; } //TODO:Сделать после реализации Журналирования
+        public string LogSequenceNumber { get; private set; }
         [DataMember]
         public uint SequenceNumber { get; private set; }
         [DataMember]
         public FileType Flag { get; private set; }
 
         [JsonConstructor]
-        public MFTEntryHeader(string signature, uint sequenceNumber, FileType flag = FileType.File)
+        public MFTEntryHeader(string signature, uint sequenceNumber,string logSequenceNumber,FileType flag = FileType.File)
         {
             if (string.IsNullOrWhiteSpace(signature))
             {
@@ -34,6 +34,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
 
             Signature = signature;
             SequenceNumber = sequenceNumber;
+            LogSequenceNumber = logSequenceNumber;
             Flag = flag;
 
         }

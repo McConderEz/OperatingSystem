@@ -36,8 +36,18 @@ namespace OperatingSystem.Controller
 
             if (CurrentUser == null)
             {
-                uint id = Users.OrderByDescending(x => x.Id).FirstOrDefault().Id;
-                CurrentUser = new User(id+1, 0 ,login, password);
+                var user = Users.OrderByDescending(x => x.Id).FirstOrDefault();
+                uint id;
+                if(user == null)
+                {
+                    id = 1;
+                }
+                else
+                {
+                    id = user.Id + 1;
+                }
+                var hashPassword = ControllerCryptograph.GenerateHash(password);
+                CurrentUser = new User(id,new List<uint>() { 0 },login, hashPassword, DateTime.Now);
                 Users.Add(CurrentUser);
                 IsNewUser = true;
                 SaveAsync();
