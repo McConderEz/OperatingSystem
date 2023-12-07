@@ -1,4 +1,5 @@
 ﻿using OperatingSystem.Controller;
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Runtime.Serialization;
@@ -10,6 +11,8 @@ namespace OperatingSystem.Model.FileSystemEnteties
     //TODO:Оптимизировать сохранение в JSON состояние ОС при большом размере битовой карты кластеров
     //Вариант решения:Поделить битовую карту карту кластеров на одинаковое количество отрезков в файловом эквиваленте и работать с нужными,
     //не перегружая систему чтением до конца карты без информации
+
+    //TODO:Сделать возможность восстановления состояния файловой системы вместе с файлами
 
     //Пока не трогаем
     //TODO:Сделать перемещение(если реализована многоуровневая фс)
@@ -24,13 +27,13 @@ namespace OperatingSystem.Model.FileSystemEnteties
     [DataContract]
     public class FileSystem : ControllerSaveBase, IFileSystem
     {
-        //TODO:Создать механику Журналирование(Логгирование действий файловой системы и возможность отката)
         [DataMember]
         public static string FileSystemPath { get; private set; } // Путь файловой системы
         [DataMember]
         public readonly SuperBlock superBlock;
         [DataMember]
         public readonly MFT_Table mftTable;
+        public readonly Journal journal;
 
         private static FileSystem instance;
         private static readonly object lockObject = new object();
@@ -48,11 +51,13 @@ namespace OperatingSystem.Model.FileSystemEnteties
             {
                 superBlock = GetSuperblock();
                 mftTable = GetMFT();
+                journal = new Journal();
             }
             else
             {
                 superBlock = new SuperBlock();
                 mftTable = new MFT_Table();
+                journal = new Journal();
                 Formatting();
                 SaveAsync();
             }
@@ -91,10 +96,24 @@ namespace OperatingSystem.Model.FileSystemEnteties
                     File.Create(fullFilePath).Close();
 
                     mftTable.Add(fullFilePath, new FileInfo(fullFilePath).FullName, FileType.File);
+                    journal.AddEntry(new JournalEntry
+                    {
+                        Timestamp = DateTime.Now,
+                        OperationType = "Создание файла",
+                        Description = $"Создание файла {fullFilePath}"
+                    }); 
                     SaveAsync();
                 }
             }
-            catch(Exception ex) { }
+            catch(Exception ex)
+            {
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Создание файла",
+                    Description = $"Создание файла {fullFilePath}\n{ex.Message}\n{ex.StackTrace}\n{ex.Source}"
+                });
+            }
         }
 
         /// <summary>
@@ -109,9 +128,23 @@ namespace OperatingSystem.Model.FileSystemEnteties
                 {
                     mftTable.Delete(new FileInfo(path).FullName, superBlock);//Удаление записи из MFT
                     File.Delete(path);
+                    journal.AddEntry(new JournalEntry
+                    {
+                        Timestamp = DateTime.Now,
+                        OperationType = "Удаление файла",
+                        Description = $"Удаление файла {path}"
+                    });
                     SaveAsync();
                 }
-            } catch(Exception ex) { }
+            } catch(Exception ex)
+            {
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Удаление файла",
+                    Description = $"Удаление файла {path}\n{ex.Message}\n{ex.StackTrace}\n{ex.Source}"
+                });
+            }
         }
 
         public void Dispose()
@@ -179,19 +212,32 @@ namespace OperatingSystem.Model.FileSystemEnteties
             try
             {
                 string data = "";
-                using (StreamReader streamReader = new StreamReader(path))
+                using (FileStream fs = new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.None))
                 {
-                    data = streamReader.ReadToEnd();
+                    using (StreamReader streamReader = new StreamReader(path))
+                    {
+                        data = streamReader.ReadToEnd();
+                    }
                 }
-
                 FileInfo fileInfo = new FileInfo(path);
                 mftTable.Edit(path, (uint)fileInfo.Length,fileInfo);
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Чтение файла",
+                    Description = $"Чтение файла {path}"
+                });
                 SaveAsync();
                 return new StringBuilder(data);
             }
             catch(Exception ex)
             {
-
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Чтение файла",
+                    Description = $"Чтение файла {path}\n{ex.Message}\n{ex.StackTrace}\n{ex.Source}"
+                });
             }
 
             return null;
@@ -244,9 +290,23 @@ namespace OperatingSystem.Model.FileSystemEnteties
 
                 FileInfo fileInfo = new FileInfo(fullPath);
                 mftTable.Edit(fullPath, (uint)fileInfo.Length,fileInfo);
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Запись в файл",
+                    Description = $"Запись в файл {fullPath}"
+                });
                 SaveAsync();
             }
-            catch (Exception e) { }
+            catch (Exception ex)
+            {
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Запись в файл",
+                    Description = $"Запись в файл {fullPath}\n{ex.Message}\n{ex.StackTrace}\n{ex.Source}"
+                });
+            }
         }
 
 
@@ -268,8 +328,22 @@ namespace OperatingSystem.Model.FileSystemEnteties
                     }
                 }
                 mftItem.Attributes.indexesOnClusterBitmap.Clear();
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Очистка занятых кластеров записи",
+                    Description = $"Очистка занятых кластеров записи {mftItem.Attributes.FullPath}"
+                });
             }
-            catch (Exception e) { }
+            catch (Exception ex)
+            {
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Очистка занятых кластеров записи {mftItem.Attributes.FullPath}",
+                    Description = $"Очистка занятых кластеров записи {mftItem.Attributes.FullPath}\n{ex.Message}\n{ex.StackTrace}\n{ex.Source}"
+                });
+            }
         }
 
         /// <summary>
@@ -298,8 +372,22 @@ namespace OperatingSystem.Model.FileSystemEnteties
                         stream.WriteTo(fileStream);
                     }
                 }
+                instance.journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Запись байт в файл",
+                    Description = $"Запись байт в файл {fullPath}"
+                });
             }
-            catch (Exception ex) { }
+            catch (Exception ex)
+            {
+                instance.journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Запись байт в файл",
+                    Description = $"Запись байт в файл\n{ex.Message}\n{ex.StackTrace}\n{ex.Source}"
+                });
+            }
         }
 
         /// <summary>
@@ -325,15 +413,33 @@ namespace OperatingSystem.Model.FileSystemEnteties
         /// </summary>
         private async void SaveAsync()
         {
-            while (count > 0)
+            try
             {
-                semaphore.WaitOne();
+                while (count > 0)
+                {
+                    semaphore.WaitOne();
 
-                await SaveAsync(MFT_FILE_NAME, mftTable);
-                await SaveAsync(SUPERBLOCK_FILE_NAME, superBlock);
-
-                semaphore.Release();
-                count--;
+                    await SaveAsync(MFT_FILE_NAME, mftTable);
+                    await SaveAsync(SUPERBLOCK_FILE_NAME, superBlock);                    
+                    semaphore.Release();
+                    journal.AddEntry(new JournalEntry
+                    {
+                        Timestamp = DateTime.Now,
+                        OperationType = "Сохранение состояния файловой системы",
+                        Description = $"Сохранение состояния ФС {MFT_FILE_NAME}\t{SUPERBLOCK_FILE_NAME}"
+                    });
+                    count--;
+                }
+                await journal.Logging();
+            }
+            catch(Exception ex) 
+            {
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Сохранение состояния файловой системы",
+                    Description = $"Сохранение состояния файловой системы\n{ex.Message}\n{ex.InnerException}\n{ex.StackTrace}\n{ex.Source}"
+                });
             }
         }
 
@@ -364,10 +470,24 @@ namespace OperatingSystem.Model.FileSystemEnteties
                     {
                         WriteFile(newFilePath, ReadFile(oldFilePath), false);
                     }
+                    journal.AddEntry(new JournalEntry
+                    {
+                        Timestamp = DateTime.Now,
+                        OperationType = "Копирование файла",
+                        Description = $"Копирование файла {oldFilePath} в {newFilePath}"
+                    });
                     SaveAsync();
                 }
             }
-            catch(Exception ex) { }
+            catch(Exception ex)
+            {
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Копирование файла",
+                    Description = $"Копирование файла {oldFilePath} в {newFilePath}\n{ex.Message}\n{ex.StackTrace}\n{ex.Source}"
+                });
+            }
         }
 
         public void MoveTo(string path)
@@ -398,6 +518,12 @@ namespace OperatingSystem.Model.FileSystemEnteties
                     FileInfo fileInfo = new FileInfo(path);
                     string oldPath = $@"D:\NTFS\{oldName}";
                     mftTable.Edit(oldPath, (uint)fileInfo.Length, fileInfo);
+                    journal.AddEntry(new JournalEntry
+                    {
+                        Timestamp = DateTime.Now,
+                        OperationType = "Переименование файла",
+                        Description = $"Переименование файла {oldName} в {newName}"
+                    });
                     SaveAsync();
                 }
             }

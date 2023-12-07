@@ -11,7 +11,7 @@ namespace OperatingSystem.Model.ProcessCommunication
     {
         void Kill();
         void Start<T>(Action<T> method, T arg);
-        void ChangePriority(ThreadPriority priority);
+        void ChangePriority(uint priority);
 
     }
 }

@@ -11,7 +11,6 @@ namespace OperatingSystem.Model.ProcessCommunication
 
     public class Process : IProcess
     {
-        //TODO: Добавить синхронизацию потоков в файлах
         public Func<string,StringBuilder> ReadFileDelegate { get; set; }
         public Action<string> InputMethod { get; set; }
         public Action<string, StringBuilder, bool> WriteMethod { get; set; }
@@ -60,18 +59,12 @@ namespace OperatingSystem.Model.ProcessCommunication
             shouldStop = true;
         }
 
-        /// <summary>
-        /// Запуск процесса на исполнение 
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="method"></param>
-        /// <param name="arg"></param>
         public void Start<T>(Action<T> method, T arg)
         {
             shouldStop = false;
             thread = new Thread(() =>
             {
-                while(!shouldStop)
+                while (!shouldStop)
                 {
                     method.Invoke(arg);
                     shouldStop = true;
@@ -79,19 +72,9 @@ namespace OperatingSystem.Model.ProcessCommunication
             });
             thread.Priority = ThreadPriority;
             thread.Start();
-        }    
+        }
 
-        /// <summary>
-        /// Запуск процесса записи в файл на исполнение
-        /// </summary>
-        /// <typeparam name="T1"></typeparam>
-        /// <typeparam name="T2"></typeparam>
-        /// <typeparam name="T3"></typeparam>
-        /// <param name="method"></param>
-        /// <param name="arg1"></param>
-        /// <param name="arg2"></param>
-        /// <param name="arg3"></param>
-        public void StartWriteMethod<T1,T2,T3>(Action<T1,T2,T3> method, T1 arg1, T2 arg2, T3 arg3)
+        public void StartMethod<T1, T2, T3>(Action<T1, T2, T3> method, T1 arg1, T2 arg2, T3 arg3)
         {
             shouldStop = false;
             thread = new Thread(() =>
@@ -106,16 +89,10 @@ namespace OperatingSystem.Model.ProcessCommunication
             thread.Start();
         }
 
-        /// <summary>
-        /// Запуск процесса на чтение файла
-        /// </summary>
-        /// <param name="method"></param>
-        /// <param name="arg"></param>
-        /// <returns></returns>
-        public StringBuilder? StartReadMethod(Func<string,StringBuilder> method, string arg)
+        public TResult StartMethod<TResult, TArg>(Func<TArg, TResult> method, TArg arg)
         {
             shouldStop = false;
-            StringBuilder result = null;
+            TResult result = default;
             thread = new Thread(() =>
             {
                 while (!shouldStop)
@@ -131,26 +108,7 @@ namespace OperatingSystem.Model.ProcessCommunication
             return result;
         }
 
-        /// <summary>
-        /// Запуск процесса переименования или копирования файла
-        /// </summary>
-        /// <param name="method"></param>
-        /// <param name="arg1"></param>
-        /// <param name="arg2"></param>
-        public void StartCopyOrRenameMethod(Action<string, string> method, string arg1,string arg2)
-        {
-            shouldStop = false;
-            thread = new Thread(() =>
-            {
-                while (!shouldStop)
-                {
-                    method.Invoke(arg1,arg2);
-                    shouldStop = true;
-                }
-            });
-            thread.Priority = ThreadPriority;
-            thread.Start();
-        }
+        
 
         /// <summary>
         /// Генерация уникального идентификатора процесса
@@ -169,12 +127,46 @@ namespace OperatingSystem.Model.ProcessCommunication
         }
 
         /// <summary>
+        /// Запуск имитации работы процесса
+        /// </summary>
+        public void StartRandomProcess()
+        {
+
+            shouldStop = false;
+            thread = new Thread(() =>
+            {
+                while (!shouldStop)
+                {
+                    for (var i = 0; i < new Random().Next(1000, 10000); i++)
+                    {
+                        Thread.Sleep(1);
+                    }
+                    shouldStop = true;
+                }
+            });
+            thread.Priority = ThreadPriority;
+            thread.Start();
+        }
+
+        /// <summary>
         /// Смена приоритета процесса
         /// </summary>
         /// <param name="priority"></param>
-        public void ChangePriority(ThreadPriority priority)
+        public void ChangePriority(uint priority)
         {
-            ThreadPriority = priority;
+            if (priority <= 4) 
+            {
+                ThreadPriority = (ThreadPriority)priority;
+            }
+            else
+            {
+                ThreadPriority = ThreadPriority.Highest;
+            }
+        }
+
+        public override string ToString()
+        {
+            return $"{PID}\t{ProcessName}\t{ThreadPriority}\t{ThreadState}\t{StartTime}";
         }
     }
 }

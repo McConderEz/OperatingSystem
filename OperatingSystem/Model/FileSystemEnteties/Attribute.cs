@@ -68,7 +68,7 @@ namespace OperatingSystem.Model.FileSystemEnteties
             AttributesRefs = new List<Attribute>();
             TimeMarks = new TimeMarks();
             ParentsDirectory = GetParentsDir(fullPath);
-            //TODO:Сделать изменение количества блоков кластеров, размера флагов и временных меток.
+            //TODO:Сделать изменение количества блоков кластеров, размера,флагов и временных меток.
         }
 
 
