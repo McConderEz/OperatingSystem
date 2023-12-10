@@ -1,14 +1,23 @@
 ﻿using OperatingSystem.Controller;
 using OperatingSystem.Model.FileSystemEntities;
 using OperatingSystem.Model.ProcessCommunication;
+using OperatingSystem.Model.OperatingSystem;
 using System.Text;
 
 
+OperatingSystem.Model.OperatingSystem.OperatingSystem operatingSystem = new OperatingSystem.Model.OperatingSystem.OperatingSystem();
+operatingSystem.Аuthorization("minoddein","0958700191");
 
-for(var i = 0; i < 10; i++)
-{
-    var userController = new UserController(Guid.NewGuid().ToString(), Guid.NewGuid().ToString());
-}
+//operatingSystem.TaskPlanner.StartProcess((arg) => operatingSystem.FileSystem.CreateFile(arg), @"D:\NTFS\file1.txt");
+//operatingSystem.TaskPlanner.StartProcess((arg) => operatingSystem.FileSystem.CreateFile(arg), @"D:\NTFS\file2.txt");
+//operatingSystem.TaskPlanner.StartProcess((arg) => operatingSystem.FileSystem.CreateFile(arg), @"D:\NTFS\file3.txt");
+//operatingSystem.TaskPlanner.StartProcess((arg) => operatingSystem.FileSystem.CreateFile(arg), @"D:\NTFS\file4.txt");
+//operatingSystem.TaskPlanner.StartProcess((arg) => operatingSystem.FileSystem.CreateFile(arg), @"D:\NTFS\file5.txt");
+operatingSystem.TaskPlanner.StartProcess((arg1,arg2,arg3) => operatingSystem.FileSystem.WriteFile(arg1,arg2,arg3), @"D:\NTFS\file1.txt", new StringBuilder("sdasda"),false);
+
+
+
+Console.WriteLine();
 
 #region
 //FileSystem fs = FileSystem.Instance;
@@ -18,7 +27,6 @@ for(var i = 0; i < 10; i++)
 //taskPlanner.GenerationRandomProcess();
 //taskPlanner.GenerationRandomProcess();
 #endregion
-
 #region
 //process.StartAsync(process.Method, @"D:\NTFS\testAsync.txt");
 //fs.CreateFile(@"D:\NTFS\data.bin");

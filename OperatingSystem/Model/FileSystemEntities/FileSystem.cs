@@ -1,23 +1,17 @@
 ﻿using OperatingSystem.Controller;
 using OperatingSystem.Model.MultiUserProtection;
+using OperatingSystem.Model.ProcessCommunication;
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json.Serialization;
 
 namespace OperatingSystem.Model.FileSystemEntities
 {
-    //TODO:Оптимизировать сохранение в JSON состояние ОС при большом размере битовой карты кластеров
-    //Вариант решения:Поделить битовую карту карту кластеров на одинаковое количество отрезков в файловом эквиваленте и работать с нужными,
-    //не перегружая систему чтением до конца карты без информации
 
-    //TODO:Сделать возможность восстановления состояния файловой системы вместе с файлами
-
-    //Пока не трогаем
-    //TODO:Сделать перемещение(если реализована многоуровневая фс)
-    //TODO:Сделать добавление,удаление,перемещение,переименование, копирование каталога (сложно)
 
     //TODO:Группы пользователей
 
@@ -38,6 +32,7 @@ namespace OperatingSystem.Model.FileSystemEntities
         private static FileSystem instance;
         private static readonly object lockObject = new object();
         private static UserController UserController;
+        private static InterProcessCommunication ipc;
 
         private const string MFT_FILE_NAME = "mft.json";// Путь к служебному файлу, хранящим состояние MFT в NTFS
         private const string SUPERBLOCK_FILE_NAME = "superblock.json";// Путь к служебному файлу, хранящим состояние SUPERBLOCKа в NTFS
@@ -52,16 +47,25 @@ namespace OperatingSystem.Model.FileSystemEntities
                 superBlock = GetSuperblock();
                 mftTable = GetMFT();                
                 journal = new Journal();
+                //ipc = new InterProcessCommunication();
+                //ipc.StartListening();
             }
             else
             {
                 superBlock = new SuperBlock();
                 mftTable = new MFT_Table();
                 journal = new Journal();
+                //ipc = new InterProcessCommunication();
+                //ipc.StartListening();
                 Formatting();
                 SaveAsync();
             }
         }
+
+        //public void CloseFileSystem()
+        //{
+        //    ipc.StopListening();
+        //}
 
         public static FileSystem Instance
         {
@@ -242,7 +246,7 @@ namespace OperatingSystem.Model.FileSystemEntities
         {
             try
             {
-                var mftEntry = mftTable.Entries.SingleOrDefault(e => e.Attributes.FullPath == path);
+                var mftEntry = mftTable.Entries.SingleOrDefault(e => e.Attributes.FullPath.Equals(path));
                 if (mftEntry != null)
                 {
                     //Проверка на наличие прав
@@ -273,6 +277,7 @@ namespace OperatingSystem.Model.FileSystemEntities
                         });
                         SaveAsync();
 
+                        //ipc.SendMessage("reciever", data);
                         return new StringBuilder(data);
                     }
                 }
@@ -316,7 +321,7 @@ namespace OperatingSystem.Model.FileSystemEntities
                         {
                             throw new FileLoadException("Файл, куда вы хотите записать информацию, не существует!", nameof(fullPath));
                         }
-                        else if (mftItem.Attributes.indexesOnClusterBitmap.Count != 0)
+                        else if (mftItem.Attributes.indexesOnClusterBitmap.Count != 0 && append == false)
                         {
                             ReWriteIndexesOfMFTEntry(mftItem);// Удаление индексов на битовую карту в записи ввиду перезаписи информации
                         }
@@ -354,6 +359,7 @@ namespace OperatingSystem.Model.FileSystemEntities
                             Description = $"Запись в файл {fullPath}",
                             LogSequenceNumber = logSequenceNumber
                         });
+                        //ipc.SendMessage("receiver", fullPath);
                         SaveAsync();
                     }
                 }
@@ -495,6 +501,7 @@ namespace OperatingSystem.Model.FileSystemEntities
                     count--;
                 }
                 await journal.Logging();
+                count = 1;               
             }
             catch(Exception ex) 
             {

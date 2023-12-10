@@ -10,12 +10,12 @@ namespace OperatingSystem.Model.FileSystemEntities
     public enum AttributeFlags
     {
         None = 0,
-        Read = 0x1,
-        Write = 0x2,
-        Execute = 0x4,
-        Delete = 0x8,
-        Modify = Read & Write & Execute & Delete,
-        ChangeMode = 0x16,
-        FullControl = Modify & ChangeMode
+        Read = 1,
+        Write = 2,
+        Execute = 4,
+        Delete = 8,
+        Modify = 15,
+        ChangeMode = 16,
+        FullControl = 31
     }
 }

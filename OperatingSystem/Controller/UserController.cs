@@ -56,6 +56,29 @@ namespace OperatingSystem.Controller
         }
 
         /// <summary>
+        /// Привязка пользователя к группе по идентификатору группы
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="idGroup"></param>
+        public void AddInGroup(User user, uint idGroup)
+        {
+            if(idGroup > 0)
+            {
+                user.IdGroup.Add(idGroup);
+            }
+        }
+
+        /// <summary>
+        /// Показывает всех пользователей, которые состоят в группе с указанным идентификатором
+        /// </summary>
+        /// <param name="idGroup"></param>
+        /// <returns></returns>
+        public IEnumerable<User> GetAllUsersOfGroup(uint idGroup)
+        {
+            return (IEnumerable<User>)Users.Select(u => u.IdGroup.Contains(idGroup));
+        }
+
+        /// <summary>
         /// Получить данные пользователя.
         /// </summary>
         /// <returns></returns>

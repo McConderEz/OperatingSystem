@@ -67,7 +67,7 @@ namespace OperatingSystem.Model.ProcessCommunication
                 while (!shouldStop)
                 {
                     method.Invoke(arg);
-                    shouldStop = true;
+                    shouldStop = true;                   
                 }
             });
             thread.Priority = ThreadPriority;
