@@ -41,6 +41,11 @@ namespace OperatingSystem.Model.FileSystemEntities
             }
         }
 
+        public void ClearLog()
+        {
+            entries?.Clear();
+        }
+
         /// <summary>
         /// Получение списка записей журнала
         /// </summary>

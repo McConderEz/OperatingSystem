@@ -13,9 +13,12 @@ operatingSystem.Аuthorization("minoddein","0958700191");
 //operatingSystem.TaskPlanner.StartProcess((arg) => operatingSystem.FileSystem.CreateFile(arg), @"D:\NTFS\file3.txt");
 //operatingSystem.TaskPlanner.StartProcess((arg) => operatingSystem.FileSystem.CreateFile(arg), @"D:\NTFS\file4.txt");
 //operatingSystem.TaskPlanner.StartProcess((arg) => operatingSystem.FileSystem.CreateFile(arg), @"D:\NTFS\file5.txt");
-operatingSystem.TaskPlanner.StartProcess((arg1,arg2,arg3) => operatingSystem.FileSystem.WriteFile(arg1,arg2,arg3), @"D:\NTFS\file1.txt", new StringBuilder("sdasda"),false);
 
-
+for (int i = 1; i <= 5; i++)
+{
+    operatingSystem.TaskPlanner.StartProcess((arg1, arg2, arg3) => operatingSystem.FileSystem.WriteFile(arg1, arg2, arg3), @$"D:\NTFS\file{i}.txt", new StringBuilder("sdasda"), false);
+}
+operatingSystem.TaskPlanner.GetTaskPlannerInfo();
 
 Console.WriteLine();
 

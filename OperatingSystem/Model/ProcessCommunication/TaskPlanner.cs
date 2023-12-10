@@ -138,5 +138,28 @@ namespace OperatingSystem.Model.ProcessCommunication
             return process.StartMethod(method, arg);
         }
 
+        public void GetTaskPlannerInfo()
+        {          
+            while (true)
+            {
+                Console.WriteLine("PID\tProcessName\tThreadPriority\tThreadState\tStartTime");
+                
+                foreach (var process in Processes)
+                {
+                    try
+                    {
+                        Console.WriteLine(process.ToString());
+                    }
+                    catch(Exception ex)
+                    {
+                        continue;
+                    }
+                }
+
+                Thread.Sleep(1000);
+                Console.Clear();
+            }
+        }
+
     }
 }

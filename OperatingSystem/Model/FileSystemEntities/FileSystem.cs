@@ -485,22 +485,23 @@ namespace OperatingSystem.Model.FileSystemEntities
         {
             try
             {
-                while (count > 0)
-                {
-                    semaphore.WaitOne();
+                //while (count > 0)
+                //{
+                    //semaphore.WaitOne();
 
                     await SaveAsync(MFT_FILE_NAME, mftTable);
                     await SaveAsync(SUPERBLOCK_FILE_NAME, superBlock);                    
-                    semaphore.Release();
+                    //semaphore.Release();
                     journal.AddEntry(new JournalEntry
                     {
                         Timestamp = DateTime.Now,
                         OperationType = "Сохранение состояния файловой системы",
                         Description = $"Сохранение состояния ФС {MFT_FILE_NAME}\t{SUPERBLOCK_FILE_NAME}"
                     });
-                    count--;
-                }
+                //    count--;
+                //}
                 await journal.Logging();
+                journal.ClearLog();
                 count = 1;               
             }
             catch(Exception ex) 
