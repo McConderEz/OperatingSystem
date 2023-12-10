@@ -42,15 +42,28 @@ namespace OperatingSystem.Model.FileSystemEntities
 
         private FileSystem()
         {
-            if (Exists(@"D:\NTFS")) // Если директория файловой системы не создана, то форматируем
+            try
             {
-                superBlock = GetSuperblock();
-                mftTable = GetMFT();                
-                journal = new Journal();
-                //ipc = new InterProcessCommunication();
-                //ipc.StartListening();
+                if (Exists(@"D:\NTFS")) // Если директория файловой системы не создана, то форматируем
+                {
+                    superBlock = GetSuperblock();
+                    mftTable = GetMFT();
+                    journal = new Journal();
+                    //ipc = new InterProcessCommunication();
+                    //ipc.StartListening();
+                }
+                else
+                {
+                    superBlock = new SuperBlock();
+                    mftTable = new MFT_Table();
+                    journal = new Journal();
+                    //ipc = new InterProcessCommunication();
+                    //ipc.StartListening();
+                    Formatting();
+                    SaveAsync();
+                }
             }
-            else
+            catch (Exception ex)
             {
                 superBlock = new SuperBlock();
                 mftTable = new MFT_Table();
@@ -120,6 +133,10 @@ namespace OperatingSystem.Model.FileSystemEntities
                         SaveAsync();
                     }
                 }
+                else
+                {
+                    Console.WriteLine("Недостаточно прав");
+                }
             }
             catch(Exception ex)
             {
@@ -167,6 +184,10 @@ namespace OperatingSystem.Model.FileSystemEntities
                             SaveAsync();
                         }
 
+                    }
+                    else
+                    {
+                        Console.WriteLine("Недостаточно прав");
                     }
                 }
                 
@@ -229,11 +250,10 @@ namespace OperatingSystem.Model.FileSystemEntities
         /// </summary>
         /// <param name="path">Путь к каталогу</param>
         /// <returns></returns>
-        public ICollection<string> GetEntities(string path)
+        public ICollection<MFT_Entry> GetEntities(string path)
         {
             return mftTable.Entries
                 .Where(entry => entry.Attributes.ParentsDirectory.Equals(path))
-                .Select(entry => entry.Attributes.NameData)
                 .ToList();
         }
 
@@ -279,6 +299,10 @@ namespace OperatingSystem.Model.FileSystemEntities
 
                         //ipc.SendMessage("reciever", data);
                         return new StringBuilder(data);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Недостаточно прав");
                     }
                 }
             }
@@ -361,6 +385,10 @@ namespace OperatingSystem.Model.FileSystemEntities
                         });
                         //ipc.SendMessage("receiver", fullPath);
                         SaveAsync();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Недостаточно прав");
                     }
                 }
             }
@@ -481,7 +509,7 @@ namespace OperatingSystem.Model.FileSystemEntities
         /// <summary>
         /// Сохранение состояний MFT и Superblock`а
         /// </summary>
-        private async void SaveAsync()
+        private /*async*/ void SaveAsync()
         {
             try
             {
@@ -489,8 +517,8 @@ namespace OperatingSystem.Model.FileSystemEntities
                 //{
                     //semaphore.WaitOne();
 
-                    await SaveAsync(MFT_FILE_NAME, mftTable);
-                    await SaveAsync(SUPERBLOCK_FILE_NAME, superBlock);                    
+                    /*await */SaveAsync(MFT_FILE_NAME, mftTable);
+                    /*await*/ SaveAsync(SUPERBLOCK_FILE_NAME, superBlock);                    
                     //semaphore.Release();
                     journal.AddEntry(new JournalEntry
                     {
@@ -500,7 +528,7 @@ namespace OperatingSystem.Model.FileSystemEntities
                     });
                 //    count--;
                 //}
-                await journal.Logging();
+                /*await*/ journal.Logging();
                 journal.ClearLog();
                 count = 1;               
             }
@@ -520,8 +548,8 @@ namespace OperatingSystem.Model.FileSystemEntities
         /// </summary>
         public void Formatting()
         {
-            FileSystemPath = @"D:\NTFS";
-            Directory.CreateDirectory(FileSystemPath);
+            FileSystemPath = @"D:\NTFS";            
+            Directory.CreateDirectory(FileSystemPath);           
         }
 
         /// <summary>
@@ -561,6 +589,10 @@ namespace OperatingSystem.Model.FileSystemEntities
                             });
                             SaveAsync();
                         }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Недостаточно прав");
                     }
                 }
             }
@@ -624,6 +656,10 @@ namespace OperatingSystem.Model.FileSystemEntities
                             SaveAsync();
                         }
                     }
+                    else
+                    {
+                        Console.WriteLine("Недостаточно прав");
+                    }
                 }
             }
         }
@@ -646,6 +682,10 @@ namespace OperatingSystem.Model.FileSystemEntities
                     (mftEntry.Attributes.GroupId.Any(x => UserController.CurrentUser.IdGroup.Contains(x)) && (mftEntry.Attributes.AccessFlags.G == AttributeFlags.FullControl || mftEntry.Attributes.AccessFlags.G == AttributeFlags.ChangeMode)))
                 {
                     mftEntry.Attributes.ChangeMode(usersAccessFlags);
+                }
+                else
+                {
+                    Console.WriteLine("Недостаточно прав");
                 }
             }            
         }

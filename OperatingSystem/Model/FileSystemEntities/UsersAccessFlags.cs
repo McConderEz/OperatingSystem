@@ -30,5 +30,10 @@ namespace OperatingSystem.Model.FileSystemEntities
             G = g;
             O = o;
         }
+
+        public override string ToString()
+        {
+            return $"{U}-{G}-{O}";
+        }
     }
 }

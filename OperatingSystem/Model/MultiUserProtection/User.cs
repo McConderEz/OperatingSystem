@@ -58,5 +58,10 @@ namespace OperatingSystem.Model.MultiUserProtection
             Login = login;
             HashPassword = GenerateHash(password);
         }
+
+        public override string ToString()
+        {
+            return $"{Login}\t{AccountType}";
+        }
     }
 }

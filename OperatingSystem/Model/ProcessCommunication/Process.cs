@@ -89,6 +89,21 @@ namespace OperatingSystem.Model.ProcessCommunication
             thread.Start();
         }
 
+        public void StartMethod<T1, T2>(Action<T1, T2> method, T1 arg1, T2 arg2)
+        {
+            shouldStop = false;
+            thread = new Thread(() =>
+            {
+                while (!shouldStop)
+                {
+                    method.Invoke(arg1, arg2);
+                    shouldStop = true;
+                }
+            });
+            thread.Priority = ThreadPriority;
+            thread.Start();
+        }
+
         public TResult StartMethod<TResult, TArg>(Func<TArg, TResult> method, TArg arg)
         {
             shouldStop = false;
@@ -131,13 +146,12 @@ namespace OperatingSystem.Model.ProcessCommunication
         /// </summary>
         public void StartRandomProcess()
         {
-
             shouldStop = false;
             thread = new Thread(() =>
             {
                 while (!shouldStop)
                 {
-                    for (var i = 0; i < new Random().Next(1000, 10000); i++)
+                    for (var i = 0; i < new Random().Next(1000, 1000000); i++)
                     {
                         Thread.Sleep(1);
                     }

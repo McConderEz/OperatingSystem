@@ -8,7 +8,7 @@ namespace OperatingSystem.Model.FileSystemEntities
 {
     public interface IFileSystem : IDisposable
     {
-        ICollection<string> GetEntities(string path);
+        ICollection<MFT_Entry> GetEntities(string path);
         bool Exists(string path);
         void CreateFile(string fileName);
         void WriteFile(string fileName, StringBuilder data, bool append);

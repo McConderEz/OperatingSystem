@@ -33,5 +33,10 @@ namespace OperatingSystem.Model.FileSystemEntities
             Attributes = attributes;
             ID = id;
         }
+
+        public override string ToString()
+        {
+            return $"{Attributes.FullPath}\t{Attributes.Length}\t{Attributes.BlocksCount}\n{Attributes.AccessFlags}";
+        }
     }
 }

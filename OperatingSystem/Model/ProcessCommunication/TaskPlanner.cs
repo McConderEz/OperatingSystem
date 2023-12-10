@@ -8,7 +8,7 @@ namespace OperatingSystem.Model.ProcessCommunication
 {
     public class TaskPlanner
     {
-        //TODO: Добавить отслеживание процессов в реальном времени(когда будет готов интерфейс)
+        
         private static TaskPlanner instance;
         private static readonly object lockObject = new object();
         public List<Process> Processes { get; set; }
@@ -97,6 +97,19 @@ namespace OperatingSystem.Model.ProcessCommunication
         }
 
         /// <summary>
+        /// Запуск нового процесса
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="method"></param>
+        /// <param name="arg"></param>
+        public void StartProcess<T1,T2>(Action<T1,T2> method, T1 arg1,T2 arg2)
+        {
+            Process process = new Process();
+            Processes.Add(process);
+            process.StartMethod(method, arg1,arg2);
+        }
+
+        /// <summary>
         /// Генерация рандомного процесса
         /// </summary>
         public void GenerationRandomProcess()
@@ -139,8 +152,9 @@ namespace OperatingSystem.Model.ProcessCommunication
         }
 
         public void GetTaskPlannerInfo()
-        {          
-            while (true)
+        {
+            bool exitRequested = false;
+            while (!exitRequested)
             {
                 Console.WriteLine("PID\tProcessName\tThreadPriority\tThreadState\tStartTime");
                 
@@ -154,6 +168,11 @@ namespace OperatingSystem.Model.ProcessCommunication
                     {
                         continue;
                     }
+                }
+
+                if (Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Q)
+                {
+                    exitRequested = true;
                 }
 
                 Thread.Sleep(1000);
