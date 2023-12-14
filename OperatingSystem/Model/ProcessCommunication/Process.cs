@@ -72,6 +72,7 @@ namespace OperatingSystem.Model.ProcessCommunication
             });
             thread.Priority = ThreadPriority;
             thread.Start();
+            thread.Join();
         }
 
         public void StartMethod<T1, T2, T3>(Action<T1, T2, T3> method, T1 arg1, T2 arg2, T3 arg3)
@@ -87,6 +88,7 @@ namespace OperatingSystem.Model.ProcessCommunication
             });
             thread.Priority = ThreadPriority;
             thread.Start();
+            thread.Join();
         }
 
         public void StartMethod<T1, T2>(Action<T1, T2> method, T1 arg1, T2 arg2)
@@ -102,6 +104,7 @@ namespace OperatingSystem.Model.ProcessCommunication
             });
             thread.Priority = ThreadPriority;
             thread.Start();
+            thread.Join();
         }
 
         public TResult StartMethod<TResult, TArg>(Func<TArg, TResult> method, TArg arg)
@@ -151,7 +154,7 @@ namespace OperatingSystem.Model.ProcessCommunication
             {
                 while (!shouldStop)
                 {
-                    for (var i = 0; i < new Random().Next(1000, 1000000); i++)
+                    for (var i = 0; i < new Random().Next(1000, 10000); i++)
                     {
                         Thread.Sleep(1);
                     }

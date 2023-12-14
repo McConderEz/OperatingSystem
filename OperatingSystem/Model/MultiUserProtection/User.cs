@@ -29,9 +29,9 @@ namespace OperatingSystem.Model.MultiUserProtection
         [JsonConstructor]
         public User(uint id, List<uint> idGroup, string login, string hashPassword, DateTime lastLoginDate, AccountType accountType = AccountType.Normal)
         {
-            if(id <= 0)
+            if(id < 0)
             {
-                throw new ArgumentException("Id не может быть равен или меньше 0!", nameof(id));
+                throw new ArgumentException("Id не может быть меньше 0!", nameof(id));
             }
 
             if(string.IsNullOrWhiteSpace(hashPassword))
@@ -51,7 +51,7 @@ namespace OperatingSystem.Model.MultiUserProtection
             AccountType = accountType;
             LastLoginDate = lastLoginDate;
         }
-
+        
         
         public User(string login,string password)
         {
@@ -61,7 +61,7 @@ namespace OperatingSystem.Model.MultiUserProtection
 
         public override string ToString()
         {
-            return $"{Login}\t{AccountType}";
+            return $"{Id}\t{Login}\t{AccountType}\t{LastLoginDate}";
         }
     }
 }

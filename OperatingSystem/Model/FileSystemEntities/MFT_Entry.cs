@@ -36,7 +36,7 @@ namespace OperatingSystem.Model.FileSystemEntities
 
         public override string ToString()
         {
-            return $"{Attributes.FullPath}\t{Attributes.Length}\t{Attributes.BlocksCount}\n{Attributes.AccessFlags}";
+            return $"{Attributes.FullPath}\t{Attributes.Length}\t{Attributes.BlocksCount}\t{Attributes.AccessFlags}";
         }
     }
 }

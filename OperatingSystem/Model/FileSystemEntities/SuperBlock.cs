@@ -18,11 +18,10 @@ namespace OperatingSystem.Model.FileSystemEntities
         public readonly string Signature = "VortexOs"; //Сигнатура(Имя) файловой системы(тома)
         [DataMember]
         public string ID { get; } = Guid.NewGuid().ToString();//Уникальный идентификатор тома
-        public readonly ulong SectorSize = 4096;//Размер сектора
         public readonly uint ClusterUnitSize = 4096;//Размер единицы кластера
         public readonly ulong TotalDiskSize = 8589934592;//Общий размер диска        
         public readonly ulong MFTSize;//Размер MFT(12.5% от общего размера диска) 
-        public ulong ClusterBitmapOffset { get; private set; } = 8192;//Смещение битовой карты кластеров
+        public ulong ClusterBitmapOffset { get; private set; } = 0;//Смещение битовой карты кластеров
         [DataMember]
         public byte[][] ClusterBitmap { get; private set; } // Битовая карта кластеров
         public ulong MFTOffset { get; private set; } = 0;//Смещение MFT 
@@ -34,7 +33,7 @@ namespace OperatingSystem.Model.FileSystemEntities
             MFTSize = (ulong)Math.Round(TotalDiskSize * 0.125);
             MFTBackup = new List<MFT_Entry>(16);
             int totalClusterCount = 32000;
-            ClusterBitmap = new byte[totalClusterCount][]; // Создание массива массивов из 2048000 кластеров, каждый из которых равен 4кб 
+            ClusterBitmap = new byte[totalClusterCount][]; // Создание массива массивов из 32000 кластеров, каждый из которых равен 4кб 
 
             for (int i = 0; i < totalClusterCount; i++)
             {
@@ -123,6 +122,19 @@ namespace OperatingSystem.Model.FileSystemEntities
             return -1;
         }
 
+        public void ClearCluster()
+        {
+            int totalClusterCount = 32000;
+            ClusterBitmap = new byte[totalClusterCount][]; // Создание массива массивов из 2048000 кластеров, каждый из которых равен 4кб 
 
+            for (int i = 0; i < totalClusterCount; i++)
+            {
+                ClusterBitmap[i] = new byte[ClusterUnitSize];
+                for (int j = 0; j < ClusterUnitSize; j++)
+                {
+                    ClusterBitmap[i][j] = 0;
+                }
+            }
+        }
     }
 }

@@ -47,8 +47,6 @@ namespace OperatingSystem.Model.ProcessCommunication
                     }
                     catch (Exception ex)
                     {
-                        // Обработка исключения чтения сообщения
-                        Console.WriteLine($"Error reading message: {ex.Message}");
                     }
                     finally
                     {
@@ -60,7 +58,7 @@ namespace OperatingSystem.Model.ProcessCommunication
                         break;
                     }
 
-                    Thread.Sleep(1000); // Пауза между проверками новых сообщений
+                    Thread.Sleep(1000); 
                 }
             });
             thread.Start();
@@ -81,7 +79,7 @@ namespace OperatingSystem.Model.ProcessCommunication
         {
             Message message = new Message
             {
-                Sender = Environment.MachineName, // Имя текущей машины
+                Sender = Environment.MachineName, 
                 Content = content
             };
 
@@ -99,8 +97,7 @@ namespace OperatingSystem.Model.ProcessCommunication
             }
             catch (Exception ex)
             {
-                // Обработка исключения отправки сообщения
-                Console.WriteLine($"Error sending message: {ex.Message}");
+
             }
             finally
             {
@@ -110,7 +107,6 @@ namespace OperatingSystem.Model.ProcessCommunication
 
         private void ProcessReceivedMessage(Message message)
         {
-            // Обработка полученного сообщения
             Console.WriteLine($"Received message from {message.Sender}: {message.Content}");
         }
     }

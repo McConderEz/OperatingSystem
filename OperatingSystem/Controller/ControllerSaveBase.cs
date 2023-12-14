@@ -12,7 +12,7 @@ namespace OperatingSystem.Controller
         protected async Task SaveAsync(string fileName, object item)
         {
             using (var fs = new FileStream(fileName, FileMode.OpenOrCreate,FileAccess.Write,
-                FileShare.None,bufferSize:4096,useAsync: true))
+                FileShare.None))
             {
                 JsonSerializer.Serialize(fs, item);
             }

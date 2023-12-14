@@ -5,6 +5,25 @@ using OperatingSystem.Model.OperatingSystem;
 using System.Text;
 using System.Threading.Channels;
 using System.Runtime.InteropServices;
+using System.Reflection.Emit;
+
+
+
+
+//Scheduler scheduler = new Scheduler(3);
+
+
+//MyProcess process1 = new MyProcess(1, "Process 1", 5, ProcessPriority.High);
+//MyProcess process2 = new MyProcess(2, "Process 2", 3, ProcessPriority.Medium);
+//MyProcess process3 = new MyProcess(3, "Process 3", 8, ProcessPriority.Low);
+
+//scheduler.AddProcess(process1);
+//scheduler.AddProcess(process2);
+//scheduler.AddProcess(process3);
+
+//scheduler.Run();
+
+//Console.ReadLine();
 
 
 OperatingSystem.Model.OperatingSystem.OperatingSystem operatingSystem = new OperatingSystem.Model.OperatingSystem.OperatingSystem();
@@ -12,34 +31,80 @@ string tempPath = "";
 string tempPath2 = "";
 bool exit = false;
 Console.WriteLine("Загрузка системы...");
-Thread.Sleep(5000);
+Thread.Sleep(2000);
 Console.Clear();
+l1:
+Console.WriteLine("1)Войти как пользователь\n2)Войти как гость\n3)Создать нового пользователя");
 
-Console.WriteLine("Авторизуйтесь в систему");
-Console.WriteLine("Введите логин:");   
-string login = Console.ReadLine();
-Console.WriteLine("Введите пароль:");
-string password = Console.ReadLine();
-operatingSystem.Аuthorization(login, password);
-if(operatingSystem.UserController.CurrentUser != null)
+int accountKey = int.Parse(Console.ReadLine());
+
+
+if (accountKey == 1)
+{
+    Console.WriteLine("Авторизуйтесь в систему");
+    Console.WriteLine("Введите логин:");
+    string login = Console.ReadLine();
+    Console.WriteLine("Введите пароль:");
+    string password = Console.ReadLine();
+    Console.Clear();
+    while (!operatingSystem.Аuthorization(login, password))
+    {
+        Console.WriteLine("Авторизуйтесь в систему(чтобы выйти из авторизации введите в оба поля exit)");
+        Console.WriteLine("Введите логин:");
+        login = Console.ReadLine();
+        Console.WriteLine("Введите пароль:");
+        password = Console.ReadLine();
+        Console.Clear();
+
+        if(login.Equals("exit") && password.Equals("exit"))
+        {
+            goto l1;
+        }
+    }
+}
+else if(accountKey == 2)
+{
+    operatingSystem.EnterAsGuest();
+}
+else if (accountKey == 3)
+{
+    Console.WriteLine("Введите логин:");
+    string login = Console.ReadLine();
+    Console.WriteLine("Введите пароль:");
+    string password = Console.ReadLine();
+    operatingSystem.AddNewUser(login, password);
+    goto l1;
+}
+else
+{
+    goto l1;
+}
+
+if (operatingSystem.UserController.CurrentUser != null)
 {
     Console.WriteLine("Добро пожаловать!");
 }
 
-Thread.Sleep(5000);
+Thread.Sleep(2000);
 Console.Clear();
+
+//TODO:Тестировать ФС и смена доступа
+
+//TODO:Сделать управление процессов Квантование времени, Абсолютные, Динамические приоритеты и планировщик задач!!!!!!!!!
 
 while (true)
 {
     Console.WriteLine("Выберите действие:");
     Console.WriteLine("Q)Создание файла\nW)Запись в файл\nE)Чтение файла");
     Console.WriteLine("R)Переименование файла\nT)Копирование файла\nY)Удаление файла");
-    Console.WriteLine("U)Список файлов\nI)Планировщик\nV)Генерация процессов");
-    Console.WriteLine("K)Убить процесс\nA)Получить информацию о процессе\nO)Смена приоритета процесса");
-    Console.WriteLine("S)Смена прав доступа файла\nG)Добавление пользователей в группу\nF)Форматирование системы\nL)Вывести список пользователей\nX)Выход из системы");
-    Console.WriteLine("H)Смена пользователя\nJ)Текущий пользователь в системе");
+    Console.WriteLine("U)Список файлов");
+    Console.WriteLine("L)Вывести список пользователей");
+    Console.WriteLine("S)Смена прав доступа файла\nG)Добавление пользователей в группу\nF)Форматирование системы\nX)Выход из системы");
+    Console.WriteLine("H)Смена пользователя\nJ)Текущий пользователь в системе\nD)Добавить нового пользователя");
+    Console.WriteLine("Z)Удалить пользователя");
+    Console.WriteLine("N)Посмотреть всех пользователей группы\nM)Посмотреть все группы, в которых состоит пользователь");
     ConsoleKeyInfo key = Console.ReadKey();
-
+    Console.WriteLine();
     if(exit == true)
     {
         Console.WriteLine("Завершение работы...");
@@ -88,10 +153,9 @@ while (true)
             string fullPathToOldFile = Console.ReadLine();
             Console.WriteLine("Введите полный путь для скопированного файла, включая имя и расширение:");
             string fullPathToCopyFile = Console.ReadLine();
-
             tempPath = $@"{fullPathToOldFile}";
             tempPath2 = $@"{fullPathToCopyFile}";
-            operatingSystem.TaskPlanner.StartProcess((arg1, arg2) => operatingSystem.FileSystem.Rename(arg1, arg2), fullPathToOldFile, fullPathToCopyFile);
+            operatingSystem.TaskPlanner.StartProcess((arg1, arg2) => operatingSystem.FileSystem.CopyTo(arg1, arg2), fullPathToOldFile, fullPathToCopyFile);
             break;
         case ConsoleKey.Y:
             Console.WriteLine("Введите полный путь к удаляемому файлу, включая имя и расширение:");
@@ -152,7 +216,10 @@ while (true)
             }
             break;
         case ConsoleKey.F:
-            operatingSystem.FileSystem.Formatting();
+            if (operatingSystem.UserController.CurrentUser.AccountType == OperatingSystem.Model.MultiUserProtection.AccountType.Administrator)
+                operatingSystem.FileSystem.Formatting();
+            else
+                Console.WriteLine("Недостаточно прав для форматирование ФС");
             break;
         case ConsoleKey.L:
             Console.WriteLine("Список пользователей ОС:");
@@ -172,12 +239,68 @@ while (true)
                 operatingSystem.TaskPlanner.GenerationRandomProcess();
             }
             break;
+        case ConsoleKey.J:
+            Console.WriteLine(operatingSystem.UserController.CurrentUser.ToString());
+            break;
+        case ConsoleKey.H:
+            Console.Clear();
+            Console.WriteLine("Авторизуйтесь в систему");
+            Console.WriteLine("Введите логин:");
+            string changeAccLogin = Console.ReadLine();
+            Console.WriteLine("Введите пароль:");
+            string changeAccPassword = Console.ReadLine();
+            operatingSystem.Аuthorization(changeAccLogin, changeAccPassword);
+            if (operatingSystem.UserController.CurrentUser != null)
+            {
+                Console.WriteLine("Добро пожаловать!");
+            }
+            break;
+        case ConsoleKey.D:
+            Console.WriteLine("Введите имя пользователя:");
+            string newUserLogin = Console.ReadLine();
+            Console.WriteLine("Введите пароль:");
+            string newUserPassword = Console.ReadLine();
+            operatingSystem.UserController.AddNewUser(newUserLogin, newUserPassword);
+            break;
+        case ConsoleKey.G:
+            Console.WriteLine("Введите имя пользователя:");
+            string userLogin = Console.ReadLine();
+            Console.WriteLine("Введите идентификатор группы:");
+            uint id = (uint)ConvertInt();
+            operatingSystem.UserController.AddInGroup(userLogin, id);
+            break;
+        case ConsoleKey.Z:
+            Console.WriteLine("Введите имя пользователя:");
+            string userDeleteLogin = Console.ReadLine();
+            operatingSystem.UserController.DeleteUser(userDeleteLogin);
+            break;
+        case ConsoleKey.N:
+            Console.WriteLine("Введите id Группы:");
+            uint groupId = (uint)ConvertInt();
+            foreach(var user in operatingSystem.UserController.GetAllUsersOfGroup(groupId))
+            {
+                Console.WriteLine(user.ToString());
+            }
+            break;
+        case ConsoleKey.M:
+            Console.WriteLine("Введите имя пользователя:");
+            string _userLogin = Console.ReadLine();
+            var groups = operatingSystem.UserController.GetAllGroupsOfUser(_userLogin);
+            if(groups != null)
+            {
+                Console.WriteLine("Список идентификаторов групп, в которых состоит пользователь:");
+                foreach(var groupItem in groups)
+                {
+                    Console.WriteLine(groupItem + ",");
+                }
+            }
+            break;
         default:
             Console.WriteLine("Неизвестная команда!");
             break;
     }
 
-    //Thread.Sleep(5000);
+    Thread.Sleep(3000);
     Console.Clear();
 }
 

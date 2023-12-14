@@ -23,6 +23,11 @@ namespace OperatingSystem.Model.OperatingSystem
 
         public bool Аuthorization(string login, string password)
         {
+            if(login.Equals("root") && password.Equals("root"))
+            {
+                EnterAsRoot();
+            }
+
             UserController = new UserController(login, password);
 
             if(UserController.CurrentUser != null)
@@ -31,6 +36,34 @@ namespace OperatingSystem.Model.OperatingSystem
                 return true;
             }
 
+            return false;
+        }
+
+        private bool EnterAsRoot()
+        {
+            UserController = new UserController("root", "root");
+            if(UserController != null)
+            {
+                FileSystem.SetUserController(UserController);
+                return true;
+            }
+            return false;
+        }
+
+        public void AddNewUser(string login, string password)
+        {
+            UserController = new UserController();
+            UserController.AddNewUser(login, password);
+        } 
+
+        public bool EnterAsGuest()
+        {
+            UserController = new UserController("guest","guest");
+            if (UserController.CurrentUser != null)
+            {
+                FileSystem.SetUserController(UserController);
+                return true;
+            }
             return false;
         }
     }

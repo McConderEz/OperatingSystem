@@ -1,4 +1,5 @@
 ﻿using OperatingSystem.Controller;
+using OperatingSystem.Model.Memory;
 using OperatingSystem.Model.MultiUserProtection;
 using OperatingSystem.Model.ProcessCommunication;
 using System;
@@ -29,6 +30,7 @@ namespace OperatingSystem.Model.FileSystemEntities
         public readonly MFT_Table mftTable;
         public readonly Journal journal;
 
+        private static VirtualMemory VirtualMemory;
         private static FileSystem instance;
         private static readonly object lockObject = new object();
         private static UserController UserController;
@@ -49,6 +51,7 @@ namespace OperatingSystem.Model.FileSystemEntities
                     superBlock = GetSuperblock();
                     mftTable = GetMFT();
                     journal = new Journal();
+                    VirtualMemory = new VirtualMemory(40, 2048);
                     //ipc = new InterProcessCommunication();
                     //ipc.StartListening();
                 }
@@ -57,6 +60,7 @@ namespace OperatingSystem.Model.FileSystemEntities
                     superBlock = new SuperBlock();
                     mftTable = new MFT_Table();
                     journal = new Journal();
+                    VirtualMemory = new VirtualMemory(40, 2048);
                     //ipc = new InterProcessCommunication();
                     //ipc.StartListening();
                     Formatting();
@@ -103,6 +107,7 @@ namespace OperatingSystem.Model.FileSystemEntities
             if (userController != null)
             {
                 UserController = userController;
+                UserController.CurrentUser.LastLoginDate = DateTime.Now;
             }
         }
 
@@ -131,6 +136,9 @@ namespace OperatingSystem.Model.FileSystemEntities
                             LogSequenceNumber = logSequenceNumber
                         });
                         SaveAsync();
+                    }
+                    {
+                        Console.WriteLine("Файл с таким именем уже существует.");
                     }
                 }
                 else
@@ -279,7 +287,7 @@ namespace OperatingSystem.Model.FileSystemEntities
                     {
                         string logSequenceNumber = mftTable.Entries.SingleOrDefault(x => x.Attributes.FullPath.Equals(path)).Header.LogSequenceNumber;
                         string data = "";
-                        using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+                        using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
                             using (StreamReader streamReader = new StreamReader(path))
                             {
@@ -372,6 +380,9 @@ namespace OperatingSystem.Model.FileSystemEntities
 
 
                             }
+
+                            stream.Dispose();
+                            stream.Close();
                         }
 
                         FileInfo fileInfo = new FileInfo(fullPath);
@@ -467,7 +478,10 @@ namespace OperatingSystem.Model.FileSystemEntities
                         , FileShare.None, dataSize, FileOptions.WriteThrough))
                     {
                         stream.WriteTo(fileStream);
+                        fileStream.Close();
                     }
+                    writer.Flush();
+                    writer.Close();
                 }
                 instance.journal.AddEntry(new JournalEntry
                 {
@@ -548,8 +562,22 @@ namespace OperatingSystem.Model.FileSystemEntities
         /// </summary>
         public void Formatting()
         {
-            FileSystemPath = @"D:\NTFS";            
-            Directory.CreateDirectory(FileSystemPath);           
+            if (!Directory.Exists(@"D:\NTFS"))
+            {
+                FileSystemPath = @"D:\NTFS";
+                Directory.CreateDirectory(FileSystemPath);
+                mftTable.Entries.Clear();
+                superBlock.ClearCluster();
+            }
+            else
+            {
+                FileSystemPath = @"D:\NTFS";
+                Directory.Delete(FileSystemPath, true);
+                Directory.CreateDirectory(FileSystemPath);
+                mftTable.Entries.Clear();
+                superBlock.ClearCluster();
+                SaveAsync();
+            }
         }
 
         /// <summary>
@@ -589,11 +617,11 @@ namespace OperatingSystem.Model.FileSystemEntities
                             });
                             SaveAsync();
                         }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Недостаточно прав");
-                    }
+                        else
+                        {
+                            Console.WriteLine("Недостаточно прав");
+                        }
+                    }                   
                 }
             }
             catch(Exception ex)
@@ -620,47 +648,56 @@ namespace OperatingSystem.Model.FileSystemEntities
         /// <exception cref="FileLoadException"></exception>
         public void Rename(string oldName, string newName)
         {
-            string path = @"D:\NTFS\";
-            if (File.Exists(path + oldName))
+            try
             {
-                var mftEntry = mftTable.Entries.SingleOrDefault(e => e.Attributes.FullPath == path+oldName);
-                if (mftEntry != null)
+                if (File.Exists(oldName))
                 {
-                    //Проверка на наличие прав
-                    if (UserController.CurrentUser.AccountType == AccountType.Administrator ||
-                        mftEntry.Attributes.AccessFlags.O == AttributeFlags.Modify ||
-                        mftEntry.Attributes.AccessFlags.O == AttributeFlags.FullControl ||
-                        (mftEntry.Attributes.OwnerId == UserController.CurrentUser.Id && (mftEntry.Attributes.AccessFlags.U == AttributeFlags.FullControl || mftEntry.Attributes.AccessFlags.U == AttributeFlags.Modify)) ||
-                        (mftEntry.Attributes.GroupId.Any(x => UserController.CurrentUser.IdGroup.Contains(x)) && (mftEntry.Attributes.AccessFlags.G == AttributeFlags.FullControl || mftEntry.Attributes.AccessFlags.G == AttributeFlags.Modify)))
+                    var mftEntry = mftTable.Entries.SingleOrDefault(e => e.Attributes.FullPath == oldName);
+                    if (mftEntry != null)
                     {
-                        File.Move(path + oldName, path + newName);
-                        var mftItem = mftTable.Entries.SingleOrDefault(x => x.Header.Signature == oldName); //Проверка на наличие записи в MFT 
-                        string logSequenceNumber = mftItem.Header.LogSequenceNumber;
-                        path += newName;
-                        if (mftItem == null)
+                        //Проверка на наличие прав
+                        if (UserController.CurrentUser.AccountType == AccountType.Administrator ||
+                            mftEntry.Attributes.AccessFlags.O == AttributeFlags.Modify ||
+                            mftEntry.Attributes.AccessFlags.O == AttributeFlags.FullControl ||
+                            (mftEntry.Attributes.OwnerId == UserController.CurrentUser.Id && (mftEntry.Attributes.AccessFlags.U == AttributeFlags.FullControl || mftEntry.Attributes.AccessFlags.U == AttributeFlags.Modify)) ||
+                            (mftEntry.Attributes.GroupId.Any(x => UserController.CurrentUser.IdGroup.Contains(x)) && (mftEntry.Attributes.AccessFlags.G == AttributeFlags.FullControl || mftEntry.Attributes.AccessFlags.G == AttributeFlags.Modify)))
                         {
-                            throw new FileLoadException("Файл, куда вы хотите записать информацию, не существует!", nameof(oldName));
+                            File.Move(oldName, newName);
+                            var mftItem = mftTable.Entries.SingleOrDefault(x => x.Header.Signature == oldName); //Проверка на наличие записи в MFT 
+                            //string logSequenceNumber = mftItem.Header.LogSequenceNumber;
+                            if (mftItem == null)
+                            {
+                                throw new FileLoadException("Файл, куда вы хотите записать информацию, не существует!", nameof(oldName));
+                            }
+                            else
+                            {
+                                FileInfo fileInfo = new FileInfo(newName);
+                                mftTable.Edit(oldName, (uint)fileInfo.Length, fileInfo);
+                                journal.AddEntry(new JournalEntry
+                                {
+                                    Timestamp = DateTime.Now,
+                                    OperationType = "Переименование файла",
+                                    Description = $"Переименование файла {oldName} в {newName}",
+                                    //LogSequenceNumber = logSequenceNumber
+                                });
+                                SaveAsync();
+                            }
                         }
                         else
                         {
-                            FileInfo fileInfo = new FileInfo(path);
-                            string oldPath = $@"D:\NTFS\{oldName}";
-                            mftTable.Edit(oldPath, (uint)fileInfo.Length, fileInfo);
-                            journal.AddEntry(new JournalEntry
-                            {
-                                Timestamp = DateTime.Now,
-                                OperationType = "Переименование файла",
-                                Description = $"Переименование файла {oldName} в {newName}",
-                                LogSequenceNumber = logSequenceNumber
-                            });
-                            SaveAsync();
+                            Console.WriteLine("Недостаточно прав");
                         }
                     }
-                    else
-                    {
-                        Console.WriteLine("Недостаточно прав");
-                    }
                 }
+            }
+            catch(Exception ex)
+            {
+                journal.AddEntry(new JournalEntry
+                {
+                    Timestamp = DateTime.Now,
+                    OperationType = "Переименование файла",
+                    Description = $"Переименование файла {oldName} в {newName}\n{ex.Message}\n{ex.StackTrace}\n{ex.Source}",                    
+                });
             }
         }
 
